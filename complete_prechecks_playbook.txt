@@ -1,0 +1,453 @@
+---
+# Complete Linux Server Pre-checks Playbook with Email
+# File: playbooks/linux_server_prechecks_complete.yml
+- name: Linux Server Pre-checks with Email Report
+  hosts: all
+  gather_facts: true
+  become: yes
+  
+  vars:
+    # ========================================
+    # EMAIL CONFIGURATION - CHANGE THESE
+    # ========================================
+    email_from: "olam-reports@yourcompany.com"      # Change to your sender email
+    email_to: "admin@yourcompany.com"               # Change to your recipient email
+
+  tasks:
+    - name: "=== STARTING PRE-CHECKS FOR {{ inventory_hostname }} ==="
+      debug:
+        msg: "Beginning comprehensive system pre-checks"
+
+    # ========================================
+    # OS VERSION AND SYSTEM INFO
+    # ========================================
+    - name: "Get detailed OS information"
+      command: cat /etc/os-release
+      register: os_release_info
+      changed_when: false
+
+    - name: "Get kernel version"
+      command: uname -r
+      register: kernel_version
+      changed_when: false
+
+    - name: "Get system uptime"
+      command: uptime
+      register: system_uptime
+      changed_when: false
+
+    # ========================================
+    # FIRMWARE/BIOS VERSION
+    # ========================================
+    - name: "Get BIOS/firmware version"
+      command: dmidecode -s bios-version
+      register: bios_version
+      changed_when: false
+      ignore_errors: true
+
+    - name: "Get system hardware information"
+      shell: |
+        echo "Manufacturer: $(dmidecode -s system-manufacturer 2>/dev/null || echo 'Unknown')"
+        echo "Product Name: $(dmidecode -s system-product-name 2>/dev/null || echo 'Unknown')"
+        echo "Serial Number: $(dmidecode -s system-serial-number 2>/dev/null || echo 'Unknown')"
+      register: system_info
+      changed_when: false
+      ignore_errors: true
+
+    # ========================================
+    # FILESYSTEM UTILIZATION
+    # ========================================
+    - name: "Get filesystem utilization"
+      shell: df -h
+      register: filesystem_usage
+      changed_when: false
+
+    - name: "Get inode usage"
+      shell: df -i
+      register: inode_usage
+      changed_when: false
+
+    - name: "Check for high filesystem usage (over 80%)"
+      shell: df -h | awk 'NR>1 && $5+0 > 80 {print $0}'
+      register: high_usage_fs
+      changed_when: false
+
+    - name: "Get mount points"
+      shell: mount | grep -E '^/dev'
+      register: mount_points
+      changed_when: false
+      ignore_errors: true
+
+    # ========================================
+    # NETWORK INFORMATION
+    # ========================================
+    - name: "Get all IP addresses"
+      shell: ip addr show | grep -E 'inet ' | grep -v '127.0.0.1'
+      register: ip_addresses
+      changed_when: false
+
+    - name: "Get network interfaces"
+      shell: ip link show
+      register: network_interfaces
+      changed_when: false
+
+    - name: "Get routing table"
+      shell: ip route
+      register: routing_table
+      changed_when: false
+
+    - name: "Get DNS configuration"
+      shell: cat /etc/resolv.conf 2>/dev/null || echo "DNS config not found"
+      register: dns_config
+      changed_when: false
+
+    # ========================================
+    # RUNNING SERVICES
+    # ========================================
+    - name: "Get running services (systemd)"
+      shell: systemctl list-units --type=service --state=running --no-pager
+      register: running_services
+      changed_when: false
+      ignore_errors: true
+
+    - name: "Get enabled services"
+      shell: systemctl list-unit-files --type=service --state=enabled --no-pager
+      register: enabled_services
+      changed_when: false
+      ignore_errors: true
+
+    # ========================================
+    # HTTPD/APACHE VERSION AND CHECKS
+    # ========================================
+    - name: "Get HTTPD/Apache version and details"
+      shell: |
+        echo "=== HTTPD/APACHE VERSION CHECK ==="
+        if command -v httpd >/dev/null 2>&1; then
+          echo "httpd binary found: $(which httpd)"
+          echo "HTTPD Version:"
+          httpd -v 2>/dev/null || echo "httpd version check failed"
+          echo ""
+          echo "HTTPD Modules (first 10):"
+          httpd -M 2>/dev/null | head -10 || echo "httpd modules check failed"
+        elif command -v apache2 >/dev/null 2>&1; then
+          echo "apache2 binary found: $(which apache2)"
+          echo "Apache2 Version:"
+          apache2 -v 2>/dev/null || echo "apache2 version check failed"
+          echo ""
+          echo "Apache2 Modules (first 10):"
+          apache2 -M 2>/dev/null | head -10 || echo "apache2 modules check failed"
+        else
+          echo "Apache/httpd not found in PATH"
+        fi
+      register: apache_version
+      changed_when: false
+
+    - name: "Check Apache/httpd service status"
+      shell: |
+        for service in httpd apache2; do
+          if systemctl is-active --quiet $service 2>/dev/null; then
+            echo "$service is RUNNING"
+            systemctl status $service --no-pager -l | head -10
+          elif systemctl list-unit-files | grep -q "^$service.service"; then
+            echo "$service is installed but NOT RUNNING"
+          fi
+        done
+      register: apache_status
+      changed_when: false
+      ignore_errors: true
+
+    # ========================================
+    # JAVA VERSION CHECK
+    # ========================================
+    - name: "Get Java version information"
+      shell: |
+        echo "=== JAVA VERSION CHECK ==="
+        if command -v java >/dev/null 2>&1; then
+          echo "Java binary found: $(which java)"
+          echo "Java Version:"
+          java -version 2>&1
+          echo ""
+          echo "JAVA_HOME: ${JAVA_HOME:-Not set}"
+        else
+          echo "Java not found in PATH"
+        fi
+        
+        echo ""
+        echo "Additional Java installations:"
+        find /usr/java /opt/java* /usr/lib/jvm -name "java" -type f 2>/dev/null | head -5 || echo "No additional Java found"
+      register: java_version
+      changed_when: false
+
+    # ========================================
+    # TOMCAT VERSION AND CHECKS
+    # ========================================
+    - name: "Get Tomcat version and installation details"
+      shell: |
+        echo "=== TOMCAT VERSION AND INSTALLATION CHECK ==="
+        
+        TOMCAT_FOUND=false
+        for tomcat_dir in /opt/tomcat* /usr/share/tomcat* /var/lib/tomcat* /home/tomcat* /usr/local/tomcat* /opt/apache-tomcat*; do
+          if [ -d "$tomcat_dir" ]; then
+            echo "Found Tomcat directory: $tomcat_dir"
+            TOMCAT_FOUND=true
+            
+            if [ -f "$tomcat_dir/bin/version.sh" ]; then
+              echo "Tomcat Version:"
+              $tomcat_dir/bin/version.sh 2>/dev/null || echo "Version script failed"
+            elif [ -f "$tomcat_dir/bin/catalina.sh" ]; then
+              echo "Tomcat Version from catalina:"
+              $tomcat_dir/bin/catalina.sh version 2>/dev/null || echo "Catalina version failed"
+            fi
+            echo "---"
+            break
+          fi
+        done
+        
+        if [ "$TOMCAT_FOUND" = false ]; then
+          echo "No Tomcat directories found in standard locations"
+        fi
+        
+        echo ""
+        echo "Tomcat/Catalina processes:"
+        ps aux | grep -E "(tomcat|catalina)" | grep -v grep || echo "No Tomcat processes found"
+        
+        echo ""
+        echo "Environment variables:"
+        echo "CATALINA_HOME: ${CATALINA_HOME:-Not set}"
+        echo "CATALINA_BASE: ${CATALINA_BASE:-Not set}"
+      register: tomcat_version
+      changed_when: false
+
+    # ========================================
+    # CUSTOM PORT CHECKS
+    # ========================================
+    - name: "Check HTTPD custom ports (8800, 8801)"
+      shell: |
+        echo "=== HTTPD CUSTOM PORTS CHECK ==="
+        for port in 8800 8801; do
+          if netstat -tlnp 2>/dev/null | grep -q ":$port " || ss -tlnp 2>/dev/null | grep -q ":$port "; then
+            echo "Port $port: LISTENING"
+            netstat -tlnp 2>/dev/null | grep ":$port " || ss -tlnp 2>/dev/null | grep ":$port "
+          else
+            echo "Port $port: NOT LISTENING"
+          fi
+        done
+      register: httpd_ports
+      changed_when: false
+
+    - name: "Check Tomcat ports (9800, 9801, 9802, 9803)"
+      shell: |
+        echo "=== TOMCAT PORTS CHECK ==="
+        for port in 9800 9801 9802 9803; do
+          if netstat -tlnp 2>/dev/null | grep -q ":$port " || ss -tlnp 2>/dev/null | grep -q ":$port "; then
+            echo "Port $port: LISTENING"
+            netstat -tlnp 2>/dev/null | grep ":$port " || ss -tlnp 2>/dev/null | grep ":$port "
+          else
+            echo "Port $port: NOT LISTENING"
+          fi
+        done
+      register: tomcat_ports
+      changed_when: false
+
+    - name: "Check all common web ports"
+      shell: |
+        echo "=== ALL WEB PORTS STATUS ==="
+        for port in 80 443 8080 8443 8800 8801 9800 9801 9802 9803; do
+          if netstat -tlnp 2>/dev/null | grep -q ":$port " || ss -tlnp 2>/dev/null | grep -q ":$port "; then
+            echo "Port $port: LISTENING"
+          else
+            echo "Port $port: NOT LISTENING"
+          fi
+        done
+      register: all_web_ports
+      changed_when: false
+
+    # ========================================
+    # SYSTEM HEALTH METRICS
+    # ========================================
+    - name: "Get CPU information"
+      shell: lscpu | head -15
+      register: cpu_info
+      changed_when: false
+
+    - name: "Get memory information"
+      command: free -h
+      register: memory_info
+      changed_when: false
+
+    - name: "Get load average"
+      command: cat /proc/loadavg
+      register: load_average
+      changed_when: false
+
+    - name: "Get disk I/O statistics"
+      shell: iostat -x 1 1 2>/dev/null | tail -10 || echo "iostat not available"
+      register: disk_io
+      changed_when: false
+      ignore_errors: true
+
+    - name: "Get logged in users"
+      command: who
+      register: logged_users
+      changed_when: false
+
+    - name: "Get last reboot time"
+      shell: last reboot | head -1
+      register: last_reboot
+      changed_when: false
+
+    # ========================================
+    # SEND EMAIL REPORT VIA SENDMAIL
+    # ========================================
+    - name: "Send comprehensive email report via sendmail"
+      shell: |
+        {
+          echo "To: {{ email_to }}"
+          echo "From: {{ email_from }}"
+          echo "Subject: Linux Server Pre-check Report - {{ inventory_hostname }}"
+          echo "Content-Type: text/plain; charset=UTF-8"
+          echo ""
+          echo "==============================================="
+          echo "LINUX SERVER PRE-CHECK REPORT"
+          echo "==============================================="
+          echo "Hostname: {{ inventory_hostname }}"
+          echo "Generated: {{ ansible_date_time.iso8601 }}"
+          echo "==============================================="
+          echo ""
+          echo "## OPERATING SYSTEM INFORMATION"
+          echo "Distribution: {{ ansible_distribution }}"
+          echo "Version: {{ ansible_distribution_version }}"
+          echo "Kernel: {{ kernel_version.stdout }}"
+          echo "Uptime: {{ system_uptime.stdout }}"
+          echo ""
+          echo "OS Release Details:"
+          echo "{{ os_release_info.stdout }}"
+          echo ""
+          echo "## HARDWARE/FIRMWARE INFORMATION"
+          echo "BIOS Version: {{ bios_version.stdout | default('Unknown') }}"
+          echo ""
+          echo "System Details:"
+          echo "{{ system_info.stdout }}"
+          echo ""
+          echo "CPU Information:"
+          echo "{{ cpu_info.stdout }}"
+          echo ""
+          echo "Memory Information:"
+          echo "{{ memory_info.stdout }}"
+          echo ""
+          echo "## FILESYSTEM UTILIZATION"
+          echo "Disk Usage:"
+          echo "{{ filesystem_usage.stdout }}"
+          echo ""
+          echo "Inode Usage:"
+          echo "{{ inode_usage.stdout }}"
+          echo ""
+          {% if high_usage_fs.stdout %}
+          echo "⚠️  FILESYSTEM ALERT - HIGH USAGE DETECTED:"
+          echo "{{ high_usage_fs.stdout }}"
+          {% else %}
+          echo "✓ FILESYSTEM STATUS: All filesystems under 80% usage"
+          {% endif %}
+          echo ""
+          echo "Mount Points:"
+          echo "{{ mount_points.stdout }}"
+          echo ""
+          echo "## NETWORK CONFIGURATION"
+          echo "IP Addresses:"
+          echo "{{ ip_addresses.stdout }}"
+          echo ""
+          echo "Network Interfaces:"
+          echo "{{ network_interfaces.stdout }}"
+          echo ""
+          echo "DNS Configuration:"
+          echo "{{ dns_config.stdout }}"
+          echo ""
+          echo "## RUNNING SERVICES"
+          echo "Running Services (SystemD):"
+          echo "{{ running_services.stdout }}"
+          echo ""
+          echo "Enabled Services:"
+          echo "{{ enabled_services.stdout }}"
+          echo ""
+          echo "## VERSION INFORMATION"
+          echo "HTTPD/Apache Details:"
+          echo "{{ apache_version.stdout }}"
+          echo ""
+          echo "Apache Service Status:"
+          echo "{{ apache_status.stdout }}"
+          echo ""
+          echo "Java Version Details:"
+          echo "{{ java_version.stdout }}"
+          echo ""
+          echo "Tomcat Version Details:"
+          echo "{{ tomcat_version.stdout }}"
+          echo ""
+          echo "## CUSTOM PORT MONITORING"
+          echo "HTTPD Custom Ports (8800, 8801):"
+          echo "{{ httpd_ports.stdout }}"
+          echo ""
+          echo "Tomcat Ports (9800, 9801, 9802, 9803):"
+          echo "{{ tomcat_ports.stdout }}"
+          echo ""
+          echo "All Web Ports Summary:"
+          echo "{{ all_web_ports.stdout }}"
+          echo ""
+          echo "## SYSTEM HEALTH METRICS"
+          echo "Load Average: {{ load_average.stdout }}"
+          echo ""
+          echo "Disk I/O Statistics:"
+          echo "{{ disk_io.stdout }}"
+          echo ""
+          echo "Currently Logged Users:"
+          echo "{{ logged_users.stdout }}"
+          echo ""
+          echo "Last Reboot:"
+          echo "{{ last_reboot.stdout }}"
+          echo ""
+          echo "==============================================="
+          echo "END OF REPORT - {{ inventory_hostname }}"
+          echo "==============================================="
+        } | /usr/sbin/sendmail {{ email_to }}
+      delegate_to: localhost
+      run_once: true
+      ignore_errors: true
+
+    # ========================================
+    # DISPLAY SUMMARY ON CONSOLE
+    # ========================================
+    - name: "=== PRE-CHECK SUMMARY FOR {{ inventory_hostname }} ==="
+      debug:
+        msg: |
+          ================================================
+          SYSTEM SUMMARY FOR {{ inventory_hostname }}
+          ================================================
+          OS: {{ ansible_distribution }} {{ ansible_distribution_version }}
+          Kernel: {{ kernel_version.stdout }}
+          Uptime: {{ system_uptime.stdout }}
+          
+          VERSION INFORMATION:
+          - HTTPD/Apache: {{ apache_version.stdout | regex_search('Server version: Apache/[0-9.]+') | default('Not found') }}
+          - Java: {{ java_version.stdout | regex_search('java version "[^"]+"') | default('Not found') }}
+          - Tomcat: {{ tomcat_version.stdout | regex_search('Server version: Apache Tomcat/[0-9.]+') | default('Not found') }}
+          
+          CUSTOM PORTS STATUS:
+          HTTPD (8800, 8801): {{ httpd_ports.stdout.split('\n')[1:3] | join(' | ') }}
+          Tomcat (9800-9803): {{ tomcat_ports.stdout.split('\n')[1:5] | join(' | ') }}
+          
+          CRITICAL ALERTS:
+          {% if high_usage_fs.stdout %}
+          ⚠️  WARNING: High filesystem usage detected:
+          {{ high_usage_fs.stdout }}
+          {% else %}
+          ✓ All filesystems under 80% usage
+          {% endif %}
+          
+          EMAIL REPORT SENT:
+          From: {{ email_from }}
+          To: {{ email_to }}
+          Subject: Linux Server Pre-check Report - {{ inventory_hostname }}
+          ================================================
+
+    - name: "Pre-checks completed successfully"
+      debug:
+        msg: "All pre-checks completed for {{ inventory_hostname }}. Email report sent to {{ email_to }}"

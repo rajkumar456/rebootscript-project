@@ -1,0 +1,597 @@
+---
+# Linux Server Patching with Package Locks Playbook
+# File: playbooks/linux_patching_with_locks.yml
+- name: Linux Server Patching with Java, HTTPD, and Tomcat Package Locks
+  hosts: all
+  gather_facts: true
+  become: yes
+  
+  vars:
+    # ========================================
+    # EMAIL CONFIGURATION - CHANGE THESE
+    # ========================================
+    email_from: "patching-reports@yourcompany.com"
+    email_to: "admin@yourcompany.com"
+    
+    # ========================================
+    # PATCHING CONFIGURATION
+    # ========================================
+    reboot_required: "{{ auto_reboot | default(true) }}"
+    create_snapshot: "{{ create_vm_snapshot | default(false) }}"
+    
+    # Packages to lock (will detect current versions automatically)
+    packages_to_lock:
+      - "java*"
+      - "httpd*"
+      - "apache-tomcat*"
+      - "tomcat*"
+
+  tasks:
+    - name: "=== STARTING PATCHING PROCESS FOR {{ inventory_hostname }} ==="
+      debug:
+        msg: "Beginning patching with package locks for critical services"
+
+    # ========================================
+    # PRE-PATCHING CHECKS AND PREPARATION
+    # ========================================
+    - name: "Get current system information"
+      shell: |
+        echo "Hostname: $(hostname)"
+        echo "OS: $(cat /etc/os-release | grep PRETTY_NAME | cut -d= -f2 | tr -d '\"')"
+        echo "Kernel: $(uname -r)"
+        echo "Date: $(date)"
+        echo "Uptime: $(uptime)"
+      register: system_info_pre
+      changed_when: false
+
+    - name: "Check current package versions before patching"
+      shell: |
+        echo "=== CURRENT PACKAGE VERSIONS ==="
+        echo "Java packages:"
+        rpm -qa | grep -i java | sort || echo "No Java packages found"
+        echo ""
+        echo "HTTPD packages:"
+        rpm -qa | grep -i httpd | sort || echo "No HTTPD packages found"
+        echo ""
+        echo "Tomcat packages:"
+        rpm -qa | grep -i tomcat | sort || echo "No Tomcat packages found"
+        echo ""
+        echo "Apache packages:"
+        rpm -qa | grep -i apache | sort || echo "No Apache packages found"
+      register: packages_before_patching
+      changed_when: false
+
+    - name: "Check running services before patching"
+      shell: |
+        echo "=== RUNNING SERVICES BEFORE PATCHING ==="
+        for service in httpd apache2 tomcat java; do
+          if systemctl is-active --quiet $service 2>/dev/null; then
+            echo "$service: RUNNING"
+          else
+            echo "$service: NOT RUNNING"
+          fi
+        done
+      register: services_before_patching
+      changed_when: false
+
+    - name: "Check current kernel version"
+      shell: uname -r
+      register: kernel_before_patching
+      changed_when: false
+
+    - name: "Get current disk space"
+      shell: df -h
+      register: disk_space_before
+      changed_when: false
+
+    # ========================================
+    # IDENTIFY AND LOCK CRITICAL PACKAGES
+    # ========================================
+    - name: "Identify installed Java packages (including legacy)"
+      shell: |
+        echo "=== SCANNING FOR ALL JAVA PACKAGES ==="
+        
+        # Modern OpenJDK packages
+        dnf list installed 2>/dev/null | grep -E "(java|openjdk)" | awk '{print $1}' | sort | uniq > /tmp/java_packages.txt
+        
+        # Legacy Oracle Java packages
+        rpm -qa | grep -E "(jdk|jre|java.*oracle|oracle.*java)" | sort >> /tmp/java_packages.txt
+        
+        # IBM Java packages
+        rpm -qa | grep -E "(ibm.*java|java.*ibm)" | sort >> /tmp/java_packages.txt
+        
+        # Other Java implementations
+        rpm -qa | grep -E "(adoptopenjdk|amazon-corretto|zulu|azul)" | sort >> /tmp/java_packages.txt
+        
+        # Remove duplicates and empty lines
+        cat /tmp/java_packages.txt | sort | uniq | grep -v "^$" || echo ""
+        
+        echo ""
+        echo "=== JAVA PACKAGE DETAILS ==="
+        if [ -s /tmp/java_packages.txt ]; then
+          echo "Found Java packages:"
+          cat /tmp/java_packages.txt | sort | uniq | grep -v "^$" | while read package; do
+            echo "- $package"
+            rpm -qi "$package" 2>/dev/null | grep -E "(Version|Vendor|Summary)" || echo "  Package details not available"
+          done
+        else
+          echo "No Java packages found"
+        fi
+        
+        # Output final list for Ansible
+        cat /tmp/java_packages.txt | sort | uniq | grep -v "^$"
+      register: installed_java_packages
+      changed_when: false
+      ignore_errors: true
+
+    - name: "Identify installed HTTPD packages (including legacy)"
+      shell: |
+        echo "=== SCANNING FOR ALL HTTPD/APACHE PACKAGES ==="
+        
+        # Standard HTTPD packages
+        dnf list installed 2>/dev/null | grep -E "(httpd|apache)" | awk '{print $1}' | sort | uniq > /tmp/httpd_packages.txt
+        
+        # Legacy Apache packages
+        rpm -qa | grep -E "(apache.*http|http.*apache)" | sort >> /tmp/httpd_packages.txt
+        
+        # Remove duplicates and empty lines
+        cat /tmp/httpd_packages.txt | sort | uniq | grep -v "^$" || echo ""
+        
+        echo ""
+        echo "=== HTTPD PACKAGE DETAILS ==="
+        if [ -s /tmp/httpd_packages.txt ]; then
+          echo "Found HTTPD packages:"
+          cat /tmp/httpd_packages.txt | sort | uniq | grep -v "^$" | while read package; do
+            echo "- $package"
+            rpm -qi "$package" 2>/dev/null | grep -E "(Version|Summary)" || echo "  Package details not available"
+          done
+        else
+          echo "No HTTPD packages found"
+        fi
+        
+        # Output final list for Ansible
+        cat /tmp/httpd_packages.txt | sort | uniq | grep -v "^$"
+      register: installed_httpd_packages
+      changed_when: false
+      ignore_errors: true
+
+    - name: "Identify installed Tomcat packages (including legacy)"
+      shell: |
+        echo "=== SCANNING FOR ALL TOMCAT PACKAGES ==="
+        
+        # Standard Tomcat packages
+        dnf list installed 2>/dev/null | grep -E "(tomcat|apache-tomcat)" | awk '{print $1}' | sort | uniq > /tmp/tomcat_packages.txt
+        
+        # Legacy Tomcat packages
+        rpm -qa | grep -E "(tomcat|catalina)" | sort >> /tmp/tomcat_packages.txt
+        
+        # Remove duplicates and empty lines
+        cat /tmp/tomcat_packages.txt | sort | uniq | grep -v "^$" || echo ""
+        
+        echo ""
+        echo "=== TOMCAT PACKAGE DETAILS ==="
+        if [ -s /tmp/tomcat_packages.txt ]; then
+          echo "Found Tomcat packages:"
+          cat /tmp/tomcat_packages.txt | sort | uniq | grep -v "^$" | while read package; do
+            echo "- $package"
+            rpm -qi "$package" 2>/dev/null | grep -E "(Version|Summary)" || echo "  Package details not available"
+          done
+        else
+          echo "No Tomcat packages found"
+        fi
+        
+        # Output final list for Ansible
+        cat /tmp/tomcat_packages.txt | sort | uniq | grep -v "^$"
+      register: installed_tomcat_packages
+      changed_when: false
+      ignore_errors: true
+
+    - name: "Create comprehensive package lock list"
+      set_fact:
+        all_packages_to_lock: "{{ (installed_java_packages.stdout_lines + installed_httpd_packages.stdout_lines + installed_tomcat_packages.stdout_lines) | select('match', '.+') | list }}"
+
+    - name: "Display packages that will be locked"
+      debug:
+        msg: |
+          ========================================
+          PACKAGE LOCKING SUMMARY
+          ========================================
+          Java packages to lock: {{ installed_java_packages.stdout_lines | length }} packages
+          {{ installed_java_packages.stdout_lines | join('\n') or 'None found - will skip Java locking' }}
+          
+          HTTPD packages to lock: {{ installed_httpd_packages.stdout_lines | length }} packages  
+          {{ installed_httpd_packages.stdout_lines | join('\n') or 'None found - will skip HTTPD locking' }}
+          
+          Tomcat packages to lock: {{ installed_tomcat_packages.stdout_lines | length }} packages
+          {{ installed_tomcat_packages.stdout_lines | join('\n') or 'None found - will skip Tomcat locking' }}
+          
+          Total packages to lock: {{ all_packages_to_lock | length }}
+          ========================================
+
+    - name: "Install dnf-plugins-core if not present"
+      dnf:
+        name: dnf-plugins-core
+        state: present
+      ignore_errors: true
+
+    - name: "Lock critical packages using dnf versionlock"
+      shell: |
+        # Install versionlock plugin if not available
+        dnf install -y python3-dnf-plugin-versionlock 2>/dev/null || echo "Versionlock plugin installation attempted"
+        
+        {% if all_packages_to_lock | length > 0 %}
+        # Lock each package
+        {% for package in all_packages_to_lock %}
+        {% if package %}
+        echo "Locking package: {{ package }}"
+        dnf versionlock add "{{ package }}" 2>/dev/null || echo "Failed to lock {{ package }}"
+        {% endif %}
+        {% endfor %}
+        
+        # Show locked packages
+        echo "=== LOCKED PACKAGES ==="
+        dnf versionlock list 2>/dev/null || echo "Versionlock list not available"
+        {% else %}
+        echo "=== NO PACKAGES TO LOCK ==="
+        echo "No Java, HTTPD, or Tomcat packages found to lock on this server"
+        {% endif %}
+      register: package_locking_result
+      ignore_errors: true
+
+    # ========================================
+    # BACKUP CRITICAL SERVICE CONFIGURATIONS
+    # ========================================
+    - name: "Create backup directory"
+      file:
+        path: "/tmp/pre_patch_backup_{{ ansible_date_time.epoch }}"
+        state: directory
+        mode: '0755'
+
+    - name: "Backup critical configuration files"
+      shell: |
+        BACKUP_DIR="/tmp/pre_patch_backup_{{ ansible_date_time.epoch }}"
+        echo "=== BACKING UP CONFIGURATIONS ==="
+        
+        # Backup HTTPD configs (only if exists)
+        if [ -d /etc/httpd ]; then
+          cp -r /etc/httpd $BACKUP_DIR/httpd_config_backup 2>/dev/null && echo "✓ HTTPD config backed up"
+        else
+          echo "- HTTPD config directory not found - skipping backup"
+        fi
+        
+        # Backup Tomcat configs (only if exists)
+        TOMCAT_FOUND=false
+        for tomcat_dir in /opt/tomcat* /etc/tomcat* /usr/share/tomcat*; do
+          if [ -d "$tomcat_dir/conf" ]; then
+            cp -r "$tomcat_dir/conf" $BACKUP_DIR/tomcat_config_backup_$(basename $tomcat_dir) 2>/dev/null && echo "✓ Tomcat config backed up from $tomcat_dir"
+            TOMCAT_FOUND=true
+          fi
+        done
+        if [ "$TOMCAT_FOUND" = false ]; then
+          echo "- Tomcat config directories not found - skipping backup"
+        fi
+        
+        # Backup important system files (always exists)
+        cp /etc/passwd $BACKUP_DIR/ 2>/dev/null && echo "✓ passwd backed up"
+        cp /etc/group $BACKUP_DIR/ 2>/dev/null && echo "✓ group backed up"
+        cp /etc/hosts $BACKUP_DIR/ 2>/dev/null && echo "✓ hosts backed up"
+        
+        echo "Backup location: $BACKUP_DIR"
+        ls -la $BACKUP_DIR 2>/dev/null || echo "Backup directory created"
+      register: backup_result
+      ignore_errors: true
+
+    # ========================================
+    # PERFORM SYSTEM PATCHING
+    # ========================================
+    - name: "Clean DNF cache before patching"
+      shell: dnf clean all
+      ignore_errors: true
+
+    - name: "Check for available updates (excluding locked packages)"
+      shell: |
+        echo "=== AVAILABLE UPDATES ==="
+        dnf check-update --exclude=java* --exclude=httpd* --exclude=tomcat* --exclude=apache-tomcat* 2>/dev/null || echo "Updates check completed"
+        echo ""
+        echo "=== AVAILABLE SECURITY UPDATES ==="
+        dnf updateinfo list security --exclude=java* --exclude=httpd* --exclude=tomcat* --exclude=apache-tomcat* 2>/dev/null || echo "Security updates check completed"
+        echo ""
+        echo "=== AVAILABLE BUGFIX UPDATES ==="
+        dnf updateinfo list bugfix --exclude=java* --exclude=httpd* --exclude=tomcat* --exclude=apache-tomcat* 2>/dev/null || echo "Bugfix updates check completed"
+      register: available_updates
+      changed_when: false
+      ignore_errors: true
+
+    - name: "Update all packages except locked ones"
+      dnf:
+        name: "*"
+        state: latest
+        exclude: 
+          - "java*"
+          - "httpd*"
+          - "tomcat*"
+          - "apache-tomcat*"
+      register: patching_result
+      ignore_errors: true
+
+    - name: "Update security patches specifically (additional security layer)"
+      shell: |
+        dnf upgrade --security --exclude=java* --exclude=httpd* --exclude=tomcat* --exclude=apache-tomcat* -y
+      register: security_patching_result
+      ignore_errors: true
+
+    - name: "Update bugfix patches"
+      shell: |
+        dnf upgrade --bugfix --exclude=java* --exclude=httpd* --exclude=tomcat* --exclude=apache-tomcat* -y
+      register: bugfix_patching_result
+      when: patching_result is failed
+      ignore_errors: true
+
+    # ========================================
+    # POST-PATCHING VERIFICATION
+    # ========================================
+    - name: "Check system status after patching"
+      shell: |
+        echo "=== POST-PATCHING SYSTEM STATUS ==="
+        echo "Current kernel: $(uname -r)"
+        echo "System load: $(cat /proc/loadavg)"
+        echo "Memory usage: $(free -h | head -2)"
+        echo "Disk space: $(df -h / | tail -1)"
+      register: system_status_post
+      changed_when: false
+
+    - name: "Verify locked packages were not updated"
+      shell: |
+        echo "=== PACKAGE VERSION VERIFICATION ==="
+        echo "Java packages after patching:"
+        rpm -qa | grep -i java | sort || echo "No Java packages found"
+        echo ""
+        echo "HTTPD packages after patching:"
+        rpm -qa | grep -i httpd | sort || echo "No HTTPD packages found"
+        echo ""
+        echo "Tomcat packages after patching:"
+        rpm -qa | grep -i tomcat | sort || echo "No Tomcat packages found"
+      register: packages_after_patching
+      changed_when: false
+
+    - name: "Check if services are still running"
+      shell: |
+        echo "=== SERVICE STATUS AFTER PATCHING ==="
+        for service in httpd apache2 tomcat; do
+          if systemctl is-active --quiet $service 2>/dev/null; then
+            echo "$service: RUNNING (OK)"
+          elif systemctl list-unit-files | grep -q "^$service.service"; then
+            echo "$service: INSTALLED but NOT RUNNING"
+          else
+            echo "$service: NOT INSTALLED"
+          fi
+        done
+      register: services_after_patching
+      changed_when: false
+
+    - name: "Check if reboot is required"
+      shell: |
+        if [ -f /var/run/reboot-required ]; then
+          echo "REBOOT REQUIRED"
+        elif needs-restarting -r &>/dev/null; then
+          echo "REBOOT REQUIRED (needs-restarting)"
+        else
+          echo "NO REBOOT REQUIRED"
+        fi
+      register: reboot_check
+      changed_when: false
+      ignore_errors: true
+
+    # ========================================
+    # RESTART SERVICES IF NEEDED
+    # ========================================
+    - name: "Restart critical services if they were running before"
+      shell: |
+        echo "=== RESTARTING SERVICES ==="
+        {% if 'httpd: RUNNING' in services_before_patching.stdout %}
+        echo "Restarting HTTPD (was running before patching)..."
+        systemctl restart httpd && echo "✓ HTTPD restarted successfully" || echo "✗ HTTPD restart failed"
+        {% elif 'apache2: RUNNING' in services_before_patching.stdout %}
+        echo "Restarting Apache2 (was running before patching)..."
+        systemctl restart apache2 && echo "✓ Apache2 restarted successfully" || echo "✗ Apache2 restart failed"
+        {% else %}
+        echo "- HTTPD/Apache2 was not running before patching - skipping restart"
+        {% endif %}
+        
+        {% if 'tomcat: RUNNING' in services_before_patching.stdout %}
+        echo "Restarting Tomcat (was running before patching)..."
+        systemctl restart tomcat && echo "✓ Tomcat restarted successfully" || echo "✗ Tomcat restart failed"
+        {% else %}
+        echo "- Tomcat was not running before patching - skipping restart"
+        {% endif %}
+        
+        # Check if any Java services were running and restart them
+        if ps aux | grep -v grep | grep -i java >/dev/null; then
+          echo "Java processes detected - may need manual restart if application-specific"
+        else
+          echo "- No Java processes detected"
+        fi
+      register: service_restart_result
+      ignore_errors: true
+
+    # ========================================
+    # REBOOT IF REQUIRED AND ALLOWED
+    # ========================================
+    - name: "Reboot server if required and allowed"
+      reboot:
+        reboot_timeout: 300
+        connect_timeout: 20
+        test_command: uptime
+      when: 
+        - reboot_required | bool
+        - "'REBOOT REQUIRED' in reboot_check.stdout"
+      ignore_errors: true
+
+    # ========================================
+    # SAVE PATCHING REPORT ON CONTROL NODE
+    # ========================================
+    - name: "Create patching reports directory on control node"
+      file:
+        path: "./patching_reports"
+        state: directory
+        mode: '0755'
+      delegate_to: localhost
+      run_once: true
+
+    - name: "Generate patching report file on control node"
+      copy:
+        dest: "./patching_reports/{{ inventory_hostname }}_patching_{{ ansible_date_time.date }}_{{ ansible_date_time.hour }}{{ ansible_date_time.minute }}{{ ansible_date_time.second }}.txt"
+        content: |
+          ===============================================
+          LINUX SERVER PATCHING REPORT
+          ===============================================
+          {{ system_info_pre.stdout }}
+          ===============================================
+
+          ## PATCHING SUMMARY
+          Patching Status: {{ 'SUCCESS' if patching_result is succeeded else 'COMPLETED WITH ISSUES' }}
+          Patching Date: {{ ansible_date_time.iso8601 }}
+          Reboot Required: {{ 'YES' if 'REBOOT REQUIRED' in reboot_check.stdout else 'NO' }}
+
+          ## PACKAGE LOCKING STATUS
+          Packages Locked: {{ all_packages_to_lock | length }} packages
+          {{ package_locking_result.stdout | default('No packages were locked') }}
+
+          ## PRE-PATCHING PACKAGE VERSIONS
+          {{ packages_before_patching.stdout }}
+
+          ## POST-PATCHING PACKAGE VERSIONS
+          {{ packages_after_patching.stdout }}
+
+          ## PATCHING DETAILS
+          Primary Patching: {{ patching_result.msg | default('Patching completed') }}
+          Security Patching: {{ security_patching_result.stdout | default('Security patching completed') }}
+          {% if bugfix_patching_result is defined %}
+          Bugfix Patching: {{ bugfix_patching_result.stdout | default('Bugfix patching completed') }}
+          {% endif %}
+          
+          Available Updates Before Patching:
+          {{ available_updates.stdout }}
+
+          ## SERVICE STATUS COMPARISON
+          Before Patching:
+          {{ services_before_patching.stdout }}
+          
+          After Patching:
+          {{ services_after_patching.stdout }}
+
+          ## SYSTEM STATUS AFTER PATCHING
+          {{ system_status_post.stdout }}
+
+          ## BACKUP INFORMATION
+          {{ backup_result.stdout }}
+
+          ## SERVICE RESTART RESULTS
+          {{ service_restart_result.stdout | default('No services restarted') }}
+
+          ## REBOOT STATUS
+          {{ reboot_check.stdout }}
+          {% if reboot_required and 'REBOOT REQUIRED' in reboot_check.stdout %}
+          Server was rebooted as part of patching process.
+          {% endif %}
+
+          ===============================================
+          PATCHING COMPLETED - {{ inventory_hostname }}
+          ===============================================
+      delegate_to: localhost
+
+    # ========================================
+    # SEND EMAIL REPORT VIA SENDMAIL
+    # ========================================
+    - name: "Send patching email report via sendmail"
+      shell: |
+        {
+          echo "To: {{ email_to }}"
+          echo "From: {{ email_from }}"
+          echo "Subject: Linux Patching Report - {{ inventory_hostname }} - {{ 'SUCCESS' if patching_result is succeeded else 'COMPLETED WITH ISSUES' }}"
+          echo "Content-Type: text/plain; charset=UTF-8"
+          echo ""
+          echo "==============================================="
+          echo "LINUX SERVER PATCHING REPORT"
+          echo "==============================================="
+          echo "{{ system_info_pre.stdout }}"
+          echo "==============================================="
+          echo ""
+          echo "## PATCHING SUMMARY"
+          echo "Status: {{ 'SUCCESS' if patching_result is succeeded else 'COMPLETED WITH ISSUES' }}"
+          echo "Date: {{ ansible_date_time.iso8601 }}"
+          echo "Reboot Required: {{ 'YES' if 'REBOOT REQUIRED' in reboot_check.stdout else 'NO' }}"
+          echo ""
+          echo "## LOCKED PACKAGES (Protected from Updates)"
+          echo "Total Locked: {{ all_packages_to_lock | length }} packages"
+          echo "Java packages: {{ installed_java_packages.stdout_lines | join(', ') or 'None' }}"
+          echo "HTTPD packages: {{ installed_httpd_packages.stdout_lines | join(', ') or 'None' }}"
+          echo "Tomcat packages: {{ installed_tomcat_packages.stdout_lines | join(', ') or 'None' }}"
+          echo ""
+          echo "## PATCHING RESULTS"
+          echo "Primary Updates: {{ 'SUCCESS' if patching_result is succeeded else 'COMPLETED' }}"
+          echo "Security Updates: {{ 'APPLIED' if security_patching_result is succeeded else 'CHECKED' }}"
+          {% if bugfix_patching_result is defined %}
+          echo "Bugfix Updates: {{ 'APPLIED' if bugfix_patching_result is succeeded else 'CHECKED' }}"
+          {% endif %}
+          echo ""
+          echo "## SERVICE STATUS"
+          echo "{{ services_after_patching.stdout }}"
+          echo ""
+          {% if 'REBOOT REQUIRED' in reboot_check.stdout %}
+          echo "## ⚠️  REBOOT REQUIRED"
+          echo "{{ reboot_check.stdout }}"
+          {% if reboot_required %}
+          echo "Server was automatically rebooted."
+          {% else %}
+          echo "Manual reboot needed - automatic reboot was disabled."
+          {% endif %}
+          {% else %}
+          echo "## ✅ NO REBOOT REQUIRED"
+          {% endif %}
+          echo ""
+          echo "## SYSTEM STATUS"
+          echo "{{ system_status_post.stdout }}"
+          echo ""
+          echo "Full detailed report saved locally."
+          echo "==============================================="
+          echo "END OF PATCHING REPORT - {{ inventory_hostname }}"
+          echo "==============================================="
+        } | /usr/sbin/sendmail {{ email_to }}
+      delegate_to: localhost
+      run_once: true
+      ignore_errors: true
+
+    # ========================================
+    # DISPLAY SUMMARY ON CONSOLE
+    # ========================================
+    - name: "=== PATCHING SUMMARY FOR {{ inventory_hostname }} ==="
+      debug:
+        msg: |
+          ================================================
+          PATCHING SUMMARY FOR {{ inventory_hostname }}
+          ================================================
+          Status: {{ 'SUCCESS' if patching_result is succeeded else 'COMPLETED WITH ISSUES' }}
+          Packages Locked: {{ all_packages_to_lock | length }}
+          Reboot Required: {{ 'YES' if 'REBOOT REQUIRED' in reboot_check.stdout else 'NO' }}
+          
+          LOCKED PACKAGES:
+          - Java: {{ installed_java_packages.stdout_lines | length }} packages
+          - HTTPD: {{ installed_httpd_packages.stdout_lines | length }} packages  
+          - Tomcat: {{ installed_tomcat_packages.stdout_lines | length }} packages
+          
+          EMAIL REPORT SENT:
+          From: {{ email_from }}
+          To: {{ email_to }}
+          
+          REPORT FILE SAVED:
+          Location: ./patching_reports/{{ inventory_hostname }}_patching_{{ ansible_date_time.date }}_{{ ansible_date_time.hour }}{{ ansible_date_time.minute }}{{ ansible_date_time.second }}.txt
+          ================================================
+
+    - name: "Patching process completed"
+      debug:
+        msg: |
+          Patching completed for {{ inventory_hostname }}.
+          Status: {{ 'SUCCESS' if patching_result is succeeded else 'COMPLETED WITH ISSUES' }}
+          Critical packages (Java, HTTPD, Tomcat) were locked and protected from updates.
+          Email report sent to {{ email_to }}

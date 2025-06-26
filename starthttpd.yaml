@@ -6,8 +6,10 @@
   become: yes
   
   tasks:
-    - name: "Start all HTTPD services"
-      shell: systemctl start httpd*
+    - name: "Change to /usr/local and start all HTTPD services"
+      shell: |
+        cd /usr/local
+        systemctl start httpd*
       ignore_errors: true
 
     - name: "Check if ports 8800 and 8801 are listening"

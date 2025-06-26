@@ -13,8 +13,19 @@
       
     - name: "Wait for server to come back"
       wait_for_connection:
-        timeout: 300
+        timeout: 600
         
-    - name: "Server is back online"
+    - name: "Wait for 3 minutes after reconnection"
+      pause:
+        minutes: 3
+        prompt: "Waiting 3 minutes for system to stabilize after reboot..."
+        
+    - name: "Get server uptime"
+      shell: uptime
+      register: uptime_result
+        
+    - name: "Display reboot success and uptime"
       debug:
-        msg: "{{ inventory_hostname }} rebooted and reconnected successfully"
+        msg: |
+          {{ inventory_hostname }} rebooted and reconnected successfully!
+          Server uptime: {{ uptime_result.stdout }}

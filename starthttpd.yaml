@@ -12,6 +12,16 @@
         systemctl start httpd*
       ignore_errors: true
 
+    - name: "Show HTTPD service logs to verify successful start"
+      shell: |
+        echo "=== HTTPD Service Logs ==="
+        journalctl -u httpd* --since "1 minute ago" --no-pager
+      register: httpd_logs
+
+    - name: "Display HTTPD logs"
+      debug:
+        msg: "{{ httpd_logs.stdout }}"
+
     - name: "Check if ports 8800 and 8801 are listening"
       shell: |
         echo "Port 8800:"

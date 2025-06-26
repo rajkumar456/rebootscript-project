@@ -1,0 +1,20 @@
+---
+# Basic Reboot using shell command
+# File: basic_reboot.yml
+- name: Reboot server using shell command
+  hosts: all
+  become: yes
+  
+  tasks:
+    - name: "Execute reboot command"
+      shell: reboot
+      async: 1
+      poll: 0
+      
+    - name: "Wait for server to come back"
+      wait_for_connection:
+        timeout: 300
+        
+    - name: "Server is back online"
+      debug:
+        msg: "{{ inventory_hostname }} rebooted and reconnected successfully"

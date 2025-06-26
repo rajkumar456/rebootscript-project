@@ -1,31 +1,29 @@
 ---
-# Basic Reboot using shell command
-# File: basic_reboot.yml
-- name: Reboot server using shell command
+# Simple Linux Reboot Script (RECOMMENDED)
+# File: reboot_server.yml
+- name: Reboot Linux server
   hosts: all
   become: yes
+  gather_facts: true
   
   tasks:
-    - name: "Execute reboot command"
-      shell: reboot
-      async: 1
-      poll: 0
+    - name: "Reboot the server safely"
+      reboot:
+        reboot_timeout: 600
+        connect_timeout: 20
+        test_command: uptime
       
-    - name: "Wait for server to come back"
-      wait_for_connection:
-        timeout: 600
-        
-    - name: "Wait for 3 minutes after reconnection"
+    - name: "Wait for 3 minutes after reboot"
       pause:
         minutes: 3
-        prompt: "Waiting 3 minutes for system to stabilize after reboot..."
+        prompt: "Waiting 3 minutes after reboot for system to stabilize..."
         
-    - name: "Get server uptime"
+    - name: "Get server uptime after reboot"
       shell: uptime
-      register: uptime_result
-        
-    - name: "Display reboot success and uptime"
+      register: server_uptime
+      
+    - name: "Display server uptime"
       debug:
         msg: |
-          {{ inventory_hostname }} rebooted and reconnected successfully!
-          Server uptime: {{ uptime_result.stdout }}
+          Server {{ inventory_hostname }} rebooted successfully!
+          Current uptime: {{ server_uptime.stdout }}

@@ -1,0 +1,19 @@
+---
+# Minimal HTTPD Stop - Just the command
+# File: minimal_stop_httpd.yml
+- name: Stop HTTPD services
+  hosts: all
+  become: yes
+  
+  tasks:
+    - name: "Stop all HTTPD instances"
+      shell: |
+        # Stop all httpd services
+        systemctl stop httpd*
+      ignore_errors: true
+
+    - name: "Verify stopped"
+      shell: systemctl list-units --state=active | grep httpd || echo "All HTTPD services stopped"
+      register: check
+      
+    - debug: msg="{{ check.stdout }}"

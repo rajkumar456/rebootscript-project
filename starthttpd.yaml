@@ -1,0 +1,21 @@
+---
+# Simple HTTPD Start and Port Check
+# File: start_httpd_check_ports.yml
+- name: Start HTTPD and check ports 8800, 8801
+  hosts: all
+  become: yes
+  
+  tasks:
+    - name: "Start all HTTPD services"
+      shell: systemctl start httpd*
+      ignore_errors: true
+
+    - name: "Check if ports 8800 and 8801 are listening"
+      shell: |
+        echo "Port 8800:"
+        netstat -tlnp | grep ':8800 ' || echo "Not listening"
+        echo "Port 8801:"
+        netstat -tlnp | grep ':8801 ' || echo "Not listening"
+      register: port_check
+      
+    - debug: msg="{{ port_check.stdout }}"

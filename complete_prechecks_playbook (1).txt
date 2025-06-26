@@ -1,576 +1,665 @@
 ---
-# Complete Linux Server Pre-checks Playbook with Email
-# File: playbooks/linux_server_prechecks_complete.yml
-- name: Linux Server Pre-checks with Email Report
+# Updated Minimal Linux Server Patching - Lock Packages and Post-Checks Only
+# File: playbooks/minimal_linux_patching_updated.yml
+- name: Linux Server Patching with Package Locks - No Service Management
   hosts: all
   gather_facts: true
   become: yes
   
   vars:
     # ========================================
-    # EMAIL CONFIGURATION - CHANGE THESE
+    # EMAIL CONFIGURATION - CHANGE THESE TO YOUR ACTUAL EMAIL ADDRESSES
     # ========================================
-    email_from: "olam-reports@yourcompany.com"      # Change to your sender email
-    email_to: "admin@yourcompany.com"               # Change to your recipient email
+    email_from: "{{ email_from | default('patching-reports@yourcompany.com') }}"
+    email_to: "{{ email_to | default('admin@yourcompany.com') }}"
+    
+    # ========================================
+    # PATCHING CONFIGURATION
+    # ========================================
+    auto_reboot: "{{ auto_reboot | default(true) }}"
 
   tasks:
-    - name: "=== STARTING PRE-CHECKS FOR {{ inventory_hostname }} ==="
+    - name: "=== STARTING MINIMAL PATCHING FOR {{ inventory_hostname }} ==="
       debug:
-        msg: "Beginning comprehensive system pre-checks"
+        msg: "Beginning package locking and patching - NO service management"
 
     # ========================================
-    # OS VERSION AND SYSTEM INFO
+    # PRE-PATCHING SYSTEM INFORMATION
     # ========================================
-    - name: "Get detailed OS information"
-      command: cat /etc/os-release
-      register: os_release_info
-      changed_when: false
-
-    - name: "Get kernel version"
-      command: uname -r
-      register: kernel_version
-      changed_when: false
-
-    - name: "Get system uptime"
-      command: uptime
-      register: system_uptime
-      changed_when: false
-
-    # ========================================
-    # FIRMWARE/BIOS VERSION
-    # ========================================
-    - name: "Get BIOS/firmware version"
-      command: dmidecode -s bios-version
-      register: bios_version
-      changed_when: false
-      ignore_errors: true
-
-    - name: "Get system hardware information"
+    - name: "Get current system information"
       shell: |
-        echo "Manufacturer: $(dmidecode -s system-manufacturer 2>/dev/null || echo 'Unknown')"
-        echo "Product Name: $(dmidecode -s system-product-name 2>/dev/null || echo 'Unknown')"
-        echo "Serial Number: $(dmidecode -s system-serial-number 2>/dev/null || echo 'Unknown')"
-      register: system_info
-      changed_when: false
-      ignore_errors: true
-
-    # ========================================
-    # FILESYSTEM UTILIZATION
-    # ========================================
-    - name: "Get filesystem utilization"
-      shell: df -h
-      register: filesystem_usage
+        echo "Hostname: $(hostname)"
+        echo "OS: $(cat /etc/os-release | grep PRETTY_NAME | cut -d= -f2 | tr -d '\"')"
+        echo "Kernel: $(uname -r)"
+        echo "Date: $(date)"
+        echo "Uptime: $(uptime)"
+      register: system_info_pre
       changed_when: false
 
-    - name: "Get inode usage"
-      shell: df -i
-      register: inode_usage
-      changed_when: false
-
-    - name: "Check for high filesystem usage (over 80%)"
-      shell: df -h | awk 'NR>1 && $5+0 > 80 {print $0}'
-      register: high_usage_fs
-      changed_when: false
-
-    - name: "Get mount points"
-      shell: mount | grep -E '^/dev'
-      register: mount_points
-      changed_when: false
-      ignore_errors: true
-
-    # ========================================
-    # NETWORK INFORMATION
-    # ========================================
-    - name: "Get all IP addresses"
-      shell: ip addr show | grep -E 'inet ' | grep -v '127.0.0.1'
-      register: ip_addresses
-      changed_when: false
-
-    - name: "Get network interfaces"
-      shell: ip link show
-      register: network_interfaces
-      changed_when: false
-
-    - name: "Get routing table"
-      shell: ip route
-      register: routing_table
-      changed_when: false
-
-    - name: "Get DNS configuration"
-      shell: cat /etc/resolv.conf 2>/dev/null || echo "DNS config not found"
-      register: dns_config
-      changed_when: false
-
-    # ========================================
-    # RUNNING SERVICES
-    # ========================================
-    - name: "Get running services (systemd)"
-      shell: systemctl list-units --type=service --state=running --no-pager
-      register: running_services
-      changed_when: false
-      ignore_errors: true
-
-    - name: "Get enabled services"
-      shell: systemctl list-unit-files --type=service --state=enabled --no-pager
-      register: enabled_services
-      changed_when: false
-      ignore_errors: true
-
-    # ========================================
-    # HTTPD/APACHE VERSION AND CHECKS
-    # ========================================
-    - name: "Get HTTPD/Apache version and details"
+    - name: "Get pre-patching filesystem information"
       shell: |
-        echo "=== HTTPD/APACHE VERSION CHECK ==="
-        if command -v httpd >/dev/null 2>&1; then
-          echo "httpd binary found: $(which httpd)"
-          echo "HTTPD Version:"
-          httpd -v 2>/dev/null || echo "httpd version check failed"
-          echo ""
-          echo "HTTPD Modules (first 10):"
-          httpd -M 2>/dev/null | head -10 || echo "httpd modules check failed"
-        elif command -v apache2 >/dev/null 2>&1; then
-          echo "apache2 binary found: $(which apache2)"
-          echo "Apache2 Version:"
-          apache2 -v 2>/dev/null || echo "apache2 version check failed"
-          echo ""
-          echo "Apache2 Modules (first 10):"
-          apache2 -M 2>/dev/null | head -10 || echo "apache2 modules check failed"
-        else
-          echo "Apache/httpd not found in PATH"
-        fi
-      register: apache_version
+        echo "=== FILESYSTEM STATUS BEFORE PATCHING ==="
+        df -h
+        echo ""
+        echo "=== INODE USAGE BEFORE PATCHING ==="
+        df -i
+        echo ""
+        echo "=== MOUNT POINTS ==="
+        mount | grep -E '^/dev'
+      register: filesystem_before_patching
       changed_when: false
 
-    - name: "Check Apache/httpd service status"
+    - name: "Get pre-patching Java version information"
       shell: |
-        for service in httpd apache2; do
-          if systemctl is-active --quiet $service 2>/dev/null; then
-            echo "$service is RUNNING"
-            systemctl status $service --no-pager -l | head -10
-          elif systemctl list-unit-files | grep -q "^$service.service"; then
-            echo "$service is installed but NOT RUNNING"
-          fi
-        done
-      register: apache_status
-      changed_when: false
-      ignore_errors: true
-
-    # ========================================
-    # JAVA VERSION CHECK
-    # ========================================
-    - name: "Get Java version information"
-      shell: |
-        echo "=== JAVA VERSION CHECK ==="
+        echo "=== JAVA VERSION BEFORE PATCHING ==="
         if command -v java >/dev/null 2>&1; then
           echo "Java binary found: $(which java)"
           echo "Java Version:"
           java -version 2>&1
           echo ""
           echo "JAVA_HOME: ${JAVA_HOME:-Not set}"
+          echo ""
+          echo "Java installations found:"
+          find /usr/java /opt/java* /usr/lib/jvm -name "java" -type f 2>/dev/null | head -10 || echo "No additional Java installations found"
         else
           echo "Java not found in PATH"
         fi
-        
-        echo ""
-        echo "Additional Java installations:"
-        find /usr/java /opt/java* /usr/lib/jvm -name "java" -type f 2>/dev/null | head -5 || echo "No additional Java found"
-      register: java_version
+      register: java_before_patching
       changed_when: false
 
     # ========================================
-    # TOMCAT VERSION AND CHECKS
+    # IDENTIFY AND LOCK CRITICAL PACKAGES
     # ========================================
-    - name: "Get Tomcat version and installation details"
+    - name: "Identify installed Java packages (including legacy)"
       shell: |
-        echo "=== TOMCAT VERSION AND INSTALLATION CHECK ==="
+        echo "=== SCANNING FOR ALL JAVA PACKAGES ==="
         
-        TOMCAT_FOUND=false
-        for tomcat_dir in /opt/tomcat* /usr/share/tomcat* /var/lib/tomcat* /home/tomcat* /usr/local/tomcat* /opt/apache-tomcat*; do
-          if [ -d "$tomcat_dir" ]; then
-            echo "Found Tomcat directory: $tomcat_dir"
-            TOMCAT_FOUND=true
-            
-            if [ -f "$tomcat_dir/bin/version.sh" ]; then
-              echo "Tomcat Version:"
-              $tomcat_dir/bin/version.sh 2>/dev/null || echo "Version script failed"
-            elif [ -f "$tomcat_dir/bin/catalina.sh" ]; then
-              echo "Tomcat Version from catalina:"
-              $tomcat_dir/bin/catalina.sh version 2>/dev/null || echo "Catalina version failed"
-            fi
-            echo "---"
-            break
+        # Create temporary file for java packages
+        > /tmp/java_packages.txt
+        
+        # Modern OpenJDK packages
+        if command -v dnf >/dev/null 2>&1; then
+          dnf list installed 2>/dev/null | grep -E "(java|openjdk)" | awk '{print $1}' | sort | uniq >> /tmp/java_packages.txt
+        fi
+        
+        # Legacy Oracle Java packages
+        rpm -qa | grep -E "(jdk|jre|java.*oracle|oracle.*java)" | sort >> /tmp/java_packages.txt
+        
+        # IBM Java packages
+        rpm -qa | grep -E "(ibm.*java|java.*ibm)" | sort >> /tmp/java_packages.txt
+        
+        # Other Java implementations
+        rpm -qa | grep -E "(adoptopenjdk|amazon-corretto|zulu|azul)" | sort >> /tmp/java_packages.txt
+        
+        # Remove duplicates and empty lines, then display
+        cat /tmp/java_packages.txt | sort | uniq | grep -v "^$" || echo ""
+      register: installed_java_packages
+      changed_when: false
+      failed_when: false
+
+    - name: "Identify installed HTTPD packages (including legacy)"
+      shell: |
+        echo "=== SCANNING FOR ALL HTTPD/APACHE PACKAGES ==="
+        
+        # Create temporary file for httpd packages
+        > /tmp/httpd_packages.txt
+        
+        # Standard HTTPD packages
+        if command -v dnf >/dev/null 2>&1; then
+          dnf list installed 2>/dev/null | grep -E "(httpd|apache)" | awk '{print $1}' | sort | uniq >> /tmp/httpd_packages.txt
+        fi
+        
+        # Legacy Apache packages
+        rpm -qa | grep -E "(apache.*http|http.*apache)" | sort >> /tmp/httpd_packages.txt
+        
+        # Remove duplicates and empty lines, then display
+        cat /tmp/httpd_packages.txt | sort | uniq | grep -v "^$" || echo ""
+      register: installed_httpd_packages
+      changed_when: false
+      failed_when: false
+
+    - name: "Identify installed Tomcat packages (including legacy)"
+      shell: |
+        echo "=== SCANNING FOR ALL TOMCAT PACKAGES ==="
+        
+        # Create temporary file for tomcat packages
+        > /tmp/tomcat_packages.txt
+        
+        # Standard Tomcat packages
+        if command -v dnf >/dev/null 2>&1; then
+          dnf list installed 2>/dev/null | grep -E "(tomcat|apache-tomcat)" | awk '{print $1}' | sort | uniq >> /tmp/tomcat_packages.txt
+        fi
+        
+        # Legacy Tomcat packages
+        rpm -qa | grep -E "(tomcat|catalina)" | sort >> /tmp/tomcat_packages.txt
+        
+        # Remove duplicates and empty lines, then display
+        cat /tmp/tomcat_packages.txt | sort | uniq | grep -v "^$" || echo ""
+      register: installed_tomcat_packages
+      changed_when: false
+      failed_when: false
+
+    - name: "Create comprehensive package lock list"
+      set_fact:
+        all_packages_to_lock: "{{ (installed_java_packages.stdout_lines + installed_httpd_packages.stdout_lines + installed_tomcat_packages.stdout_lines) | select('match', '.+') | list }}"
+
+    - name: "Display packages that will be locked"
+      debug:
+        msg: |
+          ========================================
+          PACKAGE LOCKING SUMMARY
+          ========================================
+          Java packages to lock: {{ installed_java_packages.stdout_lines | length }} packages
+          {{ installed_java_packages.stdout_lines | join('\n') or 'None found - will skip Java locking' }}
+          
+          HTTPD packages to lock: {{ installed_httpd_packages.stdout_lines | length }} packages  
+          {{ installed_httpd_packages.stdout_lines | join('\n') or 'None found - will skip HTTPD locking' }}
+          
+          Tomcat packages to lock: {{ installed_tomcat_packages.stdout_lines | length }} packages
+          {{ installed_tomcat_packages.stdout_lines | join('\n') or 'None found - will skip Tomcat locking' }}
+          
+          Total packages to lock: {{ all_packages_to_lock | length }}
+          ========================================
+
+    - name: "Install dnf-plugins-core if not present"
+      dnf:
+        name: dnf-plugins-core
+        state: present
+      failed_when: false
+
+    - name: "Lock critical packages using dnf versionlock"
+      shell: |
+        # Install versionlock plugin if not available
+        dnf install -y python3-dnf-plugin-versionlock 2>/dev/null || echo "Versionlock plugin installation attempted"
+        
+        {% if all_packages_to_lock | length > 0 %}
+        # Lock each package
+        {% for package in all_packages_to_lock %}
+        {% if package %}
+        echo "Locking package: {{ package }}"
+        dnf versionlock add "{{ package }}" 2>/dev/null || echo "Failed to lock {{ package }}"
+        {% endif %}
+        {% endfor %}
+        
+        # Show locked packages
+        echo "=== LOCKED PACKAGES ==="
+        dnf versionlock list 2>/dev/null || echo "Versionlock list not available"
+        {% else %}
+        echo "=== NO PACKAGES TO LOCK ==="
+        echo "No Java, HTTPD, or Tomcat packages found to lock on this server"
+        {% endif %}
+      register: package_locking_result
+      failed_when: false
+
+    # ========================================
+    # PERFORM SYSTEM PATCHING WITH DNF UPDATE
+    # ========================================
+    - name: "Clean DNF cache before patching"
+      shell: dnf clean all
+      failed_when: false
+
+    - name: "Check for available updates (excluding locked packages)"
+      shell: |
+        echo "=== ALL AVAILABLE UPDATES ==="
+        dnf check-update --exclude=java* --exclude=httpd* --exclude=tomcat* --exclude=apache-tomcat* 2>/dev/null || echo "Updates check completed"
+        echo ""
+        echo "=== AVAILABLE SECURITY UPDATES ==="
+        dnf updateinfo list security --exclude=java* --exclude=httpd* --exclude=tomcat* --exclude=apache-tomcat* 2>/dev/null || echo "Security updates check completed"
+        echo ""
+        echo "=== AVAILABLE BUGFIX UPDATES ==="
+        dnf updateinfo list bugfix --exclude=java* --exclude=httpd* --exclude=tomcat* --exclude=apache-tomcat* 2>/dev/null || echo "Bugfix updates check completed"
+        echo ""
+        echo "=== AVAILABLE ENHANCEMENT UPDATES ==="
+        dnf updateinfo list enhancement --exclude=java* --exclude=httpd* --exclude=tomcat* --exclude=apache-tomcat* 2>/dev/null || echo "Enhancement updates check completed"
+      register: available_updates
+      changed_when: false
+      failed_when: false
+
+    # ========================================
+    # EXECUTE DNF UPDATE COMMANDS WITH PACKAGE TRACKING
+    # ========================================
+    - name: "Execute primary DNF UPDATE command with package tracking"
+      shell: |
+        echo "=========================================="
+        echo "EXECUTING: dnf update"
+        echo "=========================================="
+        echo "Full command: dnf update -y --exclude=java* --exclude=httpd* --exclude=tomcat* --exclude=apache-tomcat*"
+        echo "Purpose: Update all packages including OS version (8.9 → 8.10)"
+        echo "Starting DNF UPDATE..."
+        echo ""
+        
+        # Capture DNF update output
+        dnf update -y --exclude=java* --exclude=httpd* --exclude=tomcat* --exclude=apache-tomcat* > /tmp/dnf_update_output.log 2>&1
+        RESULT=$?
+        
+        # Display the output
+        cat /tmp/dnf_update_output.log
+        
+        echo ""
+        echo "=== PACKAGE UPDATE SUMMARY ==="
+        # Count upgraded packages
+        UPGRADED_COUNT=$(grep -c "Upgrading" /tmp/dnf_update_output.log 2>/dev/null || echo "0")
+        INSTALLED_COUNT=$(grep -c "Installing" /tmp/dnf_update_output.log 2>/dev/null || echo "0")
+        TOTAL_COUNT=$((UPGRADED_COUNT + INSTALLED_COUNT))
+        
+        echo "Packages upgraded: $UPGRADED_COUNT"
+        echo "Packages installed: $INSTALLED_COUNT"
+        echo "Total packages updated: $TOTAL_COUNT"
+        
+        echo ""
+        echo "=== UPDATED PACKAGES LIST ==="
+        if [ $TOTAL_COUNT -gt 0 ]; then
+          echo "List of updated packages:"
+          grep -E "(Upgrading|Installing)" /tmp/dnf_update_output.log | head -20 || echo "Package list not available"
+          if [ $TOTAL_COUNT -gt 20 ]; then
+            echo "... and $((TOTAL_COUNT - 20)) more packages"
           fi
-        done
-        
-        if [ "$TOMCAT_FOUND" = false ]; then
-          echo "No Tomcat directories found in standard locations"
+        else
+          echo "No packages were updated"
         fi
         
         echo ""
-        echo "Tomcat/Catalina processes:"
-        ps aux | grep -E "(tomcat|catalina)" | grep -v grep || echo "No Tomcat processes found"
+        echo "DNF UPDATE exit code: $RESULT"
+        if [ $RESULT -eq 0 ]; then
+          echo "✅ DNF UPDATE completed successfully"
+        else
+          echo "⚠️  DNF UPDATE completed with issues (exit code: $RESULT)"
+        fi
+        echo "=========================================="
+        
+        # Return the exit code for Ansible to handle
+        exit $RESULT
+      register: primary_dnf_update
+      failed_when: false
+
+    - name: "Execute DNF UPDATE --security command with tracking" 
+      shell: |
+        echo "=========================================="
+        echo "EXECUTING: dnf update --security"
+        echo "=========================================="
+        echo "Full command: dnf update --security -y --exclude=java* --exclude=httpd* --exclude=tomcat* --exclude=apache-tomcat*"
+        echo "Purpose: Apply security-specific updates and patches"
+        echo "Starting security updates..."
+        echo ""
+        
+        # Capture security update output
+        dnf update --security -y --exclude=java* --exclude=httpd* --exclude=tomcat* --exclude=apache-tomcat* > /tmp/dnf_security_output.log 2>&1
+        RESULT=$?
+        
+        # Display the output
+        cat /tmp/dnf_security_output.log
         
         echo ""
-        echo "Environment variables:"
-        echo "CATALINA_HOME: ${CATALINA_HOME:-Not set}"
-        echo "CATALINA_BASE: ${CATALINA_BASE:-Not set}"
-      register: tomcat_version
-      changed_when: false
+        echo "=== SECURITY UPDATE SUMMARY ==="
+        # Count security updates
+        SECURITY_COUNT=$(grep -c "Upgrading" /tmp/dnf_security_output.log 2>/dev/null || echo "0")
+        echo "Security packages updated: $SECURITY_COUNT"
+        
+        if [ $SECURITY_COUNT -gt 0 ]; then
+          echo "Security packages updated:"
+          grep "Upgrading" /tmp/dnf_security_output.log | head -10 || echo "Security package list not available"
+        else
+          echo "No additional security updates needed"
+        fi
+        
+        echo ""
+        echo "DNF UPDATE --security exit code: $RESULT"
+        if [ $RESULT -eq 0 ]; then
+          echo "✅ DNF UPDATE --security completed successfully"
+        else
+          echo "⚠️  DNF UPDATE --security completed with issues (exit code: $RESULT)"
+        fi
+        echo "=========================================="
+        
+        # Return the exit code for Ansible to handle
+        exit $RESULT
+      register: security_dnf_update
+      failed_when: false
 
-    # ========================================
-    # CUSTOM PORT CHECKS
-    # ========================================
-    - name: "Check HTTPD custom ports (8800, 8801)"
+    - name: "Execute DNF UPDATE --bugfix command with tracking"
       shell: |
-        echo "=== HTTPD CUSTOM PORTS CHECK ==="
-        for port in 8800 8801; do
-          if netstat -tlnp 2>/dev/null | grep -q ":$port " || ss -tlnp 2>/dev/null | grep -q ":$port "; then
-            echo "Port $port: LISTENING"
-            netstat -tlnp 2>/dev/null | grep ":$port " || ss -tlnp 2>/dev/null | grep ":$port "
-          else
-            echo "Port $port: NOT LISTENING"
+        echo "=========================================="
+        echo "EXECUTING: dnf update --bugfix"
+        echo "=========================================="
+        echo "Full command: dnf update --bugfix -y --exclude=java* --exclude=httpd* --exclude=tomcat* --exclude=apache-tomcat*"
+        echo "Purpose: Apply bugfix-specific updates and improvements"
+        echo "Starting bugfix updates..."
+        echo ""
+        
+        # Capture bugfix update output
+        dnf update --bugfix -y --exclude=java* --exclude=httpd* --exclude=tomcat* --exclude=apache-tomcat* > /tmp/dnf_bugfix_output.log 2>&1
+        RESULT=$?
+        
+        # Display the output
+        cat /tmp/dnf_bugfix_output.log
+        
+        echo ""
+        echo "=== BUGFIX UPDATE SUMMARY ==="
+        # Count bugfix updates
+        BUGFIX_COUNT=$(grep -c "Upgrading" /tmp/dnf_bugfix_output.log 2>/dev/null || echo "0")
+        echo "Bugfix packages updated: $BUGFIX_COUNT"
+        
+        if [ $BUGFIX_COUNT -gt 0 ]; then
+          echo "Bugfix packages updated:"
+          grep "Upgrading" /tmp/dnf_bugfix_output.log | head -10 || echo "Bugfix package list not available"
+        else
+          echo "No additional bugfix updates needed"
+        fi
+        
+        echo ""
+        echo "DNF UPDATE --bugfix exit code: $RESULT"
+        if [ $RESULT -eq 0 ]; then
+          echo "✅ DNF UPDATE --bugfix completed successfully"
+        else
+          echo "⚠️  DNF UPDATE --bugfix completed with issues (exit code: $RESULT)"
+        fi
+        echo "=========================================="
+        
+        # Return the exit code for Ansible to handle  
+        exit $RESULT
+      register: bugfix_dnf_update
+      failed_when: false
+
+    - name: "Generate comprehensive package update summary"
+      shell: |
+        echo "=========================================="
+        echo "COMPREHENSIVE PACKAGE UPDATE SUMMARY"
+        echo "=========================================="
+        
+        # Extract package counts from all updates
+        TOTAL_MAIN=$(grep -c "Upgrading\|Installing" /tmp/dnf_update_output.log 2>/dev/null || echo "0")
+        TOTAL_SECURITY=$(grep -c "Upgrading" /tmp/dnf_security_output.log 2>/dev/null || echo "0")
+        TOTAL_BUGFIX=$(grep -c "Upgrading" /tmp/dnf_bugfix_output.log 2>/dev/null || echo "0")
+        
+        echo "Package Update Statistics:"
+        echo "- Main DNF UPDATE: $TOTAL_MAIN packages"
+        echo "- Security updates: $TOTAL_SECURITY packages"
+        echo "- Bugfix updates: $TOTAL_BUGFIX packages"
+        echo "- Total unique updates: $TOTAL_MAIN packages"
+        echo ""
+        
+        echo "Key System Package Updates:"
+        if [ -f /tmp/dnf_update_output.log ]; then
+          echo "Critical system packages updated:"
+          grep -E "(kernel|oraclelinux-release|systemd|glibc|openssl)" /tmp/dnf_update_output.log || echo "No critical system packages updated"
+        fi
+        
+        echo ""
+        echo "Complete Package List (first 25 packages):"
+        if [ -f /tmp/dnf_update_output.log ]; then
+          grep -E "(Upgrading|Installing)" /tmp/dnf_update_output.log | head -25 || echo "No package details available"
+          REMAINING=$(grep -c "Upgrading\|Installing" /tmp/dnf_update_output.log 2>/dev/null || echo "0")
+          if [ $REMAINING -gt 25 ]; then
+            echo "... and $((REMAINING - 25)) more packages updated"
           fi
-        done
-      register: httpd_ports
+        fi
+        echo "=========================================="
+      register: package_summary
       changed_when: false
 
-    - name: "Check Tomcat ports (9800, 9801, 9802, 9803)"
+    - name: "Extract package update counts for reporting"
       shell: |
-        echo "=== TOMCAT PORTS CHECK ==="
-        for port in 9800 9801 9802 9803; do
-          if netstat -tlnp 2>/dev/null | grep -q ":$port " || ss -tlnp 2>/dev/null | grep -q ":$port "; then
-            echo "Port $port: LISTENING"
-            netstat -tlnp 2>/dev/null | grep ":$port " || ss -tlnp 2>/dev/null | grep ":$port "
-          else
-            echo "Port $port: NOT LISTENING"
-          fi
-        done
-      register: tomcat_ports
+        TOTAL_MAIN=$(grep -c "Upgrading\|Installing" /tmp/dnf_update_output.log 2>/dev/null || echo "0")
+        TOTAL_SECURITY=$(grep -c "Upgrading" /tmp/dnf_security_output.log 2>/dev/null || echo "0") 
+        TOTAL_BUGFIX=$(grep -c "Upgrading" /tmp/dnf_bugfix_output.log 2>/dev/null || echo "0")
+        
+        echo "MAIN_UPDATES=$TOTAL_MAIN"
+        echo "SECURITY_UPDATES=$TOTAL_SECURITY"
+        echo "BUGFIX_UPDATES=$TOTAL_BUGFIX"
+        echo "TOTAL_PACKAGES=$TOTAL_MAIN"
+      register: package_counts
       changed_when: false
 
-    - name: "Check all common web ports"
+    - name: "Check if reboot is required"
       shell: |
-        echo "=== ALL WEB PORTS STATUS ==="
-        for port in 80 443 8080 8443 8800 8801 9800 9801 9802 9803; do
-          if netstat -tlnp 2>/dev/null | grep -q ":$port " || ss -tlnp 2>/dev/null | grep -q ":$port "; then
-            echo "Port $port: LISTENING"
-          else
-            echo "Port $port: NOT LISTENING"
-          fi
-        done
-      register: all_web_ports
+        if [ -f /var/run/reboot-required ]; then
+          echo "REBOOT REQUIRED"
+        elif command -v needs-restarting >/dev/null 2>&1 && needs-restarting -r &>/dev/null; then
+          echo "REBOOT REQUIRED (needs-restarting)"
+        else
+          echo "NO REBOOT REQUIRED"
+        fi
+      register: reboot_check
+      changed_when: false
+      failed_when: false
+
+    # ========================================
+    # REBOOT IF REQUIRED AND ALLOWED
+    # ========================================
+    - name: "Reboot server if required and allowed"
+      reboot:
+        reboot_timeout: 300
+        connect_timeout: 20
+        test_command: uptime
+      when: 
+        - auto_reboot | bool
+        - "'REBOOT REQUIRED' in reboot_check.stdout"
+      failed_when: false
+
+    # ========================================
+    # POST-PATCHING VERIFICATION (NO SERVICE MANAGEMENT)
+    # ========================================
+    - name: "Get post-patching system status with version comparison"
+      shell: |
+        echo "=== POST-PATCHING SYSTEM STATUS ==="
+        echo "Current OS: $(cat /etc/oracle-release 2>/dev/null || cat /etc/redhat-release)"
+        echo "Current kernel: $(uname -r)"
+        echo "System load: $(cat /proc/loadavg)"
+        echo "Memory usage: $(free -h | head -2)"
+        echo "Boot time: $(who -b)"
+        echo "Current time: $(date)"
+        echo ""
+        echo "=== OS RELEASE DETAILS ==="
+        cat /etc/os-release | grep -E "(PRETTY_NAME|VERSION_ID|VERSION)"
+      register: system_status_post
+      changed_when: false
+
+    - name: "Get post-patching filesystem information"
+      shell: |
+        echo "=== FILESYSTEM STATUS AFTER PATCHING ==="
+        df -h
+        echo ""
+        echo "=== INODE USAGE AFTER PATCHING ==="
+        df -i
+        echo ""
+        echo "=== FILESYSTEM USAGE ALERTS ==="
+        df -h | awk 'NR>1 && $5+0 > 80 {print "WARNING: " $0 " is over 80% full"}' || echo "All filesystems under 80% usage"
+      register: filesystem_after_patching
+      changed_when: false
+
+    - name: "Get post-patching Java version information"
+      shell: |
+        echo "=== JAVA VERSION AFTER PATCHING ==="
+        if command -v java >/dev/null 2>&1; then
+          echo "Java binary found: $(which java)"
+          echo "Java Version:"
+          java -version 2>&1
+          echo ""
+          echo "JAVA_HOME: ${JAVA_HOME:-Not set}"
+          echo ""
+          echo "Java installations found:"
+          find /usr/java /opt/java* /usr/lib/jvm -name "java" -type f 2>/dev/null | head -10 || echo "No additional Java installations found"
+        else
+          echo "Java not found in PATH"
+        fi
+      register: java_after_patching
+      changed_when: false
+
+    - name: "Verify locked packages were not updated"
+      shell: |
+        echo "=== PACKAGE VERSION VERIFICATION ==="
+        echo "Java packages after patching:"
+        rpm -qa | grep -i java | sort || echo "No Java packages found"
+        echo ""
+        echo "HTTPD packages after patching:"
+        rpm -qa | grep -i httpd | sort || echo "No HTTPD packages found"
+        echo ""
+        echo "Tomcat packages after patching:"
+        rpm -qa | grep -i tomcat | sort || echo "No Tomcat packages found"
+        echo ""
+        echo "Locked packages status:"
+        dnf versionlock list 2>/dev/null || echo "Versionlock list not available"
+      register: packages_after_patching
       changed_when: false
 
     # ========================================
-    # SYSTEM HEALTH METRICS
+    # DETERMINE OVERALL PATCHING STATUS
     # ========================================
-    - name: "Get CPU information"
-      shell: lscpu | head -15
-      register: cpu_info
-      changed_when: false
-
-    - name: "Get memory information"
-      command: free -h
-      register: memory_info
-      changed_when: false
-
-    - name: "Get load average"
-      command: cat /proc/loadavg
-      register: load_average
-      changed_when: false
-
-    - name: "Get disk I/O statistics"
-      shell: iostat -x 1 1 2>/dev/null | tail -10 || echo "iostat not available"
-      register: disk_io
-      changed_when: false
-      ignore_errors: true
-
-    - name: "Get logged in users"
-      command: who
-      register: logged_users
-      changed_when: false
-
-    - name: "Get last reboot time"
-      shell: last reboot | head -1
-      register: last_reboot
-      changed_when: false
+    - name: "Set overall patching status"
+      set_fact:
+        overall_patching_status: >-
+          {%- if primary_dnf_update.rc == 0 and security_dnf_update.rc == 0 and bugfix_dnf_update.rc == 0 -%}
+          SUCCESS
+          {%- elif primary_dnf_update.rc == 0 -%}
+          PARTIAL_SUCCESS
+          {%- else -%}
+          ISSUES
+          {%- endif %}
 
     # ========================================
     # SAVE REPORT FILE ON CONTROL NODE
     # ========================================
-    - name: "Create reports directory on control node"
+    - name: "Create patching reports directory on control node"
       file:
-        path: "./reports"
+        path: "./patching_reports"
         state: directory
         mode: '0755'
       delegate_to: localhost
       run_once: true
 
-    - name: "Generate report file on control node"
+    - name: "Generate minimal patching report file on control node"
       copy:
-        dest: "./reports/{{ inventory_hostname }}_precheck_{{ ansible_date_time.date }}_{{ ansible_date_time.hour }}{{ ansible_date_time.minute }}{{ ansible_date_time.second }}.txt"
+        dest: "./patching_reports/{{ inventory_hostname }}_minimal_patching_{{ ansible_date_time.date }}_{{ ansible_date_time.hour }}{{ ansible_date_time.minute }}{{ ansible_date_time.second }}.txt"
         content: |
           ===============================================
-          LINUX SERVER PRE-CHECK REPORT
+          MINIMAL LINUX SERVER PATCHING REPORT
           ===============================================
-          Hostname: {{ inventory_hostname }}
-          Generated: {{ ansible_date_time.iso8601 }}
+          {{ system_info_pre.stdout }}
           ===============================================
 
-          ## OPERATING SYSTEM INFORMATION
-          Distribution: {{ ansible_distribution }}
-          Version: {{ ansible_distribution_version }}
-          Kernel: {{ kernel_version.stdout }}
-          Uptime: {{ system_uptime.stdout }}
-
-          OS Release Details:
-          {{ os_release_info.stdout }}
-
-          ## HARDWARE/FIRMWARE INFORMATION
-          BIOS Version: {{ bios_version.stdout | default('Unknown') }}
-
-          System Details:
-          {{ system_info.stdout }}
-
-          CPU Information:
-          {{ cpu_info.stdout }}
-
-          Memory Information:
-          {{ memory_info.stdout }}
-
-          ## FILESYSTEM UTILIZATION
-          Disk Usage:
-          {{ filesystem_usage.stdout }}
-
-          Inode Usage:
-          {{ inode_usage.stdout }}
-
-          {% if high_usage_fs.stdout %}
-          ⚠️  FILESYSTEM ALERT - HIGH USAGE DETECTED:
-          {{ high_usage_fs.stdout }}
-          {% else %}
-          ✓ FILESYSTEM STATUS: All filesystems under 80% usage
+          ## PATCHING SUMMARY
+          Patching Status: {{ overall_patching_status }}
+          Patching Date: {{ ansible_date_time.iso8601 }}
+          Reboot Required: {{ 'YES' if 'REBOOT REQUIRED' in reboot_check.stdout else 'NO' }}
+          {% if auto_reboot and 'REBOOT REQUIRED' in reboot_check.stdout %}
+          Reboot Status: Server was rebooted as part of patching process
           {% endif %}
 
-          Mount Points:
-          {{ mount_points.stdout }}
+          ## PACKAGE LOCKING STATUS
+          Packages Locked: {{ all_packages_to_lock | length }} packages
+          {{ package_locking_result.stdout | default('No packages were locked') }}
 
-          ## NETWORK CONFIGURATION
-          IP Addresses:
-          {{ ip_addresses.stdout }}
+          ## FILESYSTEM STATUS COMPARISON
+          
+          BEFORE PATCHING:
+          {{ filesystem_before_patching.stdout }}
+          
+          AFTER PATCHING:
+          {{ filesystem_after_patching.stdout }}
 
-          Network Interfaces:
-          {{ network_interfaces.stdout }}
+          ## JAVA VERSION COMPARISON
+          
+          BEFORE PATCHING:
+          {{ java_before_patching.stdout }}
+          
+          AFTER PATCHING:
+          {{ java_after_patching.stdout }}
 
-          DNS Configuration:
-          {{ dns_config.stdout }}
+          ## PATCHING DETAILS
+          Primary DNF Update: {{ 'SUCCESS (exit code: ' + primary_dnf_update.rc|string + ')' if primary_dnf_update.rc == 0 else 'ISSUES (exit code: ' + primary_dnf_update.rc|string + ')' }}
+          Security Updates: {{ 'SUCCESS (exit code: ' + security_dnf_update.rc|string + ')' if security_dnf_update.rc == 0 else 'ISSUES (exit code: ' + security_dnf_update.rc|string + ')' }}
+          Bugfix Updates: {{ 'SUCCESS (exit code: ' + bugfix_dnf_update.rc|string + ')' if bugfix_dnf_update.rc == 0 else 'ISSUES (exit code: ' + bugfix_dnf_update.rc|string + ')' }}
+          
+          Available Updates Before Patching:
+          {{ available_updates.stdout }}
 
-          ## RUNNING SERVICES
-          Running Services (SystemD):
-          {{ running_services.stdout }}
+          ## PACKAGE UPDATE STATISTICS
+          {{ package_summary.stdout }}
 
-          Enabled Services:
-          {{ enabled_services.stdout }}
+          ## POST-PATCHING PACKAGE VERIFICATION
+          {{ packages_after_patching.stdout }}
 
-          ## VERSION INFORMATION
-          HTTPD/Apache Details:
-          {{ apache_version.stdout }}
+          ## SYSTEM VERSION COMPARISON
+          
+          BEFORE PATCHING:
+          {{ system_info_pre.stdout }}
+          
+          AFTER PATCHING:
+          {{ system_status_post.stdout }}
+          
+          ## VERSION CHANGE SUMMARY
+          {% set kernel_before = system_info_pre.stdout | regex_search('Kernel: (.+)', '\\1') | first | default('Unknown') %}
+          {% set kernel_after = system_status_post.stdout | regex_search('Current kernel: (.+)', '\\1') | first | default('Unknown') %}
+          {% set os_before = system_info_pre.stdout | regex_search('OS: (.+)', '\\1') | first | default('Unknown') %}
+          {% set os_after = system_status_post.stdout | regex_search('Current OS: (.+)', '\\1') | first | default('Unknown') %}
+          
+          Kernel Update: {{ kernel_before }} → {{ kernel_after }}
+          OS Update: {{ os_before }} → {{ os_after }}
+          {% if kernel_before != kernel_after %}
+          ✅ KERNEL UPDATED
+          {% else %}
+          ℹ️  Kernel unchanged
+          {% endif %}
+          {% if '8.9' in os_before and '8.10' in os_after %}
+          ✅ OS SUCCESSFULLY UPDATED (8.9 → 8.10)
+          {% elif os_before != os_after %}
+          ✅ OS UPDATED
+          {% else %}
+          ℹ️  OS version unchanged
+          {% endif %}
 
-          Apache Service Status:
-          {{ apache_status.stdout }}
-
-          Java Version Details:
-          {{ java_version.stdout }}
-
-          Tomcat Version Details:
-          {{ tomcat_version.stdout }}
-
-          ## CUSTOM PORT MONITORING
-          HTTPD Custom Ports (8800, 8801):
-          {{ httpd_ports.stdout }}
-
-          Tomcat Ports (9800, 9801, 9802, 9803):
-          {{ tomcat_ports.stdout }}
-
-          All Web Ports Summary:
-          {{ all_web_ports.stdout }}
-
-          ## SYSTEM HEALTH METRICS
-          Load Average: {{ load_average.stdout }}
-
-          Disk I/O Statistics:
-          {{ disk_io.stdout }}
-
-          Currently Logged Users:
-          {{ logged_users.stdout }}
-
-          Last Reboot:
-          {{ last_reboot.stdout }}
+          ## REBOOT STATUS
+          {{ reboot_check.stdout }}
 
           ===============================================
-          END OF REPORT - {{ inventory_hostname }}
+          NOTE: NO SERVICE MANAGEMENT PERFORMED
+          This patching run focused only on:
+          - Package locking (Java, HTTPD, Tomcat)
+          - System patching (excluding locked packages)
+          - Post-patching verification
+          - Filesystem and Java version checks
+          
+          NO services were started, stopped, or restarted.
+          ===============================================
+          END OF MINIMAL PATCHING REPORT - {{ inventory_hostname }}
           ===============================================
       delegate_to: localhost
 
     # ========================================
     # SEND EMAIL REPORT VIA SENDMAIL
     # ========================================
-    - name: "Send comprehensive email report via sendmail"
+    - name: "Send minimal patching email report via sendmail"
       shell: |
         {
           echo "To: {{ email_to }}"
           echo "From: {{ email_from }}"
-          echo "Subject: Linux Server Pre-check Report - {{ inventory_hostname }}"
+          echo "Subject: Minimal Patching Report - {{ inventory_hostname }} - {{ overall_patching_status }}"
           echo "Content-Type: text/plain; charset=UTF-8"
           echo ""
           echo "==============================================="
-          echo "LINUX SERVER PRE-CHECK REPORT"
+          echo "MINIMAL LINUX SERVER PATCHING REPORT"
           echo "==============================================="
-          echo "Hostname: {{ inventory_hostname }}"
-          echo "Generated: {{ ansible_date_time.iso8601 }}"
+          echo "{{ system_info_pre.stdout }}"
           echo "==============================================="
           echo ""
-          echo "## OPERATING SYSTEM INFORMATION"
-          echo "Distribution: {{ ansible_distribution }}"
-          echo "Version: {{ ansible_distribution_version }}"
-          echo "Kernel: {{ kernel_version.stdout }}"
-          echo "Uptime: {{ system_uptime.stdout }}"
-          echo ""
-          echo "OS Release Details:"
-          echo "{{ os_release_info.stdout }}"
-          echo ""
-          echo "## HARDWARE/FIRMWARE INFORMATION"
-          echo "BIOS Version: {{ bios_version.stdout | default('Unknown') }}"
-          echo ""
-          echo "System Details:"
-          echo "{{ system_info.stdout }}"
-          echo ""
-          echo "CPU Information:"
-          echo "{{ cpu_info.stdout }}"
-          echo ""
-          echo "Memory Information:"
-          echo "{{ memory_info.stdout }}"
-          echo ""
-          echo "## FILESYSTEM UTILIZATION"
-          echo "Disk Usage:"
-          echo "{{ filesystem_usage.stdout }}"
-          echo ""
-          echo "Inode Usage:"
-          echo "{{ inode_usage.stdout }}"
-          echo ""
-          {% if high_usage_fs.stdout %}
-          echo "⚠️  FILESYSTEM ALERT - HIGH USAGE DETECTED:"
-          echo "{{ high_usage_fs.stdout }}"
-          {% else %}
-          echo "✓ FILESYSTEM STATUS: All filesystems under 80% usage"
+          echo "## PATCHING SUMMARY"
+          echo "Status: {{ overall_patching_status }}"
+          echo "Date: {{ ansible_date_time.iso8601 }}"
+          echo "Reboot Required: {{ 'YES' if 'REBOOT REQUIRED' in reboot_check.stdout else 'NO' }}"
+          {% if auto_reboot and 'REBOOT REQUIRED' in reboot_check.stdout %}
+          echo "Reboot Status: Server was automatically rebooted"
           {% endif %}
           echo ""
-          echo "Mount Points:"
-          echo "{{ mount_points.stdout }}"
+          echo "## DNF UPDATE COMMANDS EXECUTED"
+          echo "1. dnf update -y --exclude=java* --exclude=httpd* --exclude=tomcat* --exclude=apache-tomcat*"
+          echo "   Status: {{ 'SUCCESS' if primary_dnf_update.rc == 0 else 'ISSUES (exit code: ' + primary_dnf_update.rc|string + ')' }}"
           echo ""
-          echo "## NETWORK CONFIGURATION"
-          echo "IP Addresses:"
-          echo "{{ ip_addresses.stdout }}"
+          echo "2. dnf update --security -y --exclude=java* --exclude=httpd* --exclude=tomcat* --exclude=apache-tomcat*"
+          echo "   Status: {{ 'SUCCESS' if security_dnf_update.rc == 0 else 'ISSUES (exit code: ' + security_dnf_update.rc|string + ')' }}"
           echo ""
-          echo "Network Interfaces:"
-          echo "{{ network_interfaces.stdout }}"
+          echo "3. dnf update --bugfix -y --exclude=java* --exclude=httpd* --exclude=tomcat* --exclude=apache-tomcat*"
+          echo "   Status: {{ 'SUCCESS' if bugfix_dnf_update.rc == 0 else 'ISSUES (exit code: ' + bugfix_dnf_update.rc|string + ')' }}"
           echo ""
-          echo "DNS Configuration:"
-          echo "{{ dns_config.stdout }}"
-          echo ""
-          echo "## RUNNING SERVICES"
-          echo "Running Services (SystemD):"
-          echo "{{ running_services.stdout }}"
-          echo ""
-          echo "Enabled Services:"
-          echo "{{ enabled_services.stdout }}"
-          echo ""
-          echo "## VERSION INFORMATION"
-          echo "HTTPD/Apache Details:"
-          echo "{{ apache_version.stdout }}"
-          echo ""
-          echo "Apache Service Status:"
-          echo "{{ apache_status.stdout }}"
-          echo ""
-          echo "Java Version Details:"
-          echo "{{ java_version.stdout }}"
-          echo ""
-          echo "Tomcat Version Details:"
-          echo "{{ tomcat_version.stdout }}"
-          echo ""
-          echo "## CUSTOM PORT MONITORING"
-          echo "HTTPD Custom Ports (8800, 8801):"
-          echo "{{ httpd_ports.stdout }}"
-          echo ""
-          echo "Tomcat Ports (9800, 9801, 9802, 9803):"
-          echo "{{ tomcat_ports.stdout }}"
-          echo ""
-          echo "All Web Ports Summary:"
-          echo "{{ all_web_ports.stdout }}"
-          echo ""
-          echo "## SYSTEM HEALTH METRICS"
-          echo "Load Average: {{ load_average.stdout }}"
-          echo ""
-          echo "Disk I/O Statistics:"
-          echo "{{ disk_io.stdout }}"
-          echo ""
-          echo "Currently Logged Users:"
-          echo "{{ logged_users.stdout }}"
-          echo ""
-          echo "Last Reboot:"
-          echo "{{ last_reboot.stdout }}"
-          echo ""
-          echo "==============================================="
-          echo "END OF REPORT - {{ inventory_hostname }}"
-          echo "==============================================="
-        } | /usr/sbin/sendmail {{ email_to }}
-      delegate_to: localhost
-      run_once: true
-      ignore_errors: true
-
-    # ========================================
-    # DISPLAY SUMMARY ON CONSOLE
-    # ========================================
-    - name: "=== PRE-CHECK SUMMARY FOR {{ inventory_hostname }} ==="
-      debug:
-        msg: |
-          ================================================
-          SYSTEM SUMMARY FOR {{ inventory_hostname }}
-          ================================================
-          OS: {{ ansible_distribution }} {{ ansible_distribution_version }}
-          Kernel: {{ kernel_version.stdout }}
-          Uptime: {{ system_uptime.stdout }}
-          
-          VERSION INFORMATION:
-          - HTTPD/Apache: {{ apache_version.stdout | regex_search('Server version: Apache/[0-9.]+') | default('Not found') }}
-          - Java: {{ java_version.stdout | regex_search('java version "[^"]+"') | default('Not found') }}
-          - Tomcat: {{ tomcat_version.stdout | regex_search('Server version: Apache Tomcat/[0-9.]+') | default('Not found') }}
-          
-          CUSTOM PORTS STATUS:
-          HTTPD (8800, 8801): {{ httpd_ports.stdout.split('\n')[1:3] | join(' | ') }}
-          Tomcat (9800-9803): {{ tomcat_ports.stdout.split('\n')[1:5] | join(' | ') }}
-          
-          CRITICAL ALERTS:
-          {% if high_usage_fs.stdout %}
-          ⚠️  WARNING: High filesystem usage detected:
-          {{ high_usage_fs.stdout }}
-          {% else %}
-          ✓ All filesystems under 80% usage
-          {% endif %}
-          
-          EMAIL REPORT SENT:
-          From: {{ email_from }}
-          To: {{ email_to }}
-          Subject: Linux Server Pre-check Report - {{ inventory_hostname }}
-          
-          REPORT FILE SAVED:
-          Location: ./reports/{{ inventory_hostname }}_precheck_{{ ansible_date_time.date }}_{{ ansible_date_time.hour }}{{ ansible_date_time.minute }}{{ ansible_date_time.second }}.txt
-          ================================================
-
-    - name: "Pre-checks completed successfully"
-      debug:
-        msg: |
-          All pre-checks completed for {{ inventory_hostname }}.
-          Email report sent to {{ email_to }}
-          Report file saved: ./reports/{{ inventory_hostname }}_precheck_{{ ansible_date_time.date }}_{{ ansible_date_time.hour }}{{ ansible_date_time.minute }}{{ ansible_date_time.second }}.txt
+          echo "## PACKAGE UPDATE STATISTICS"
+          {% set main_count = package_counts.stdout | regex_search('MAIN_UPDATES=(\d+)', '\\1') | first | default('0') %}
+          {% set security_count = package_counts.stdout | regex_search('SECURITY_UPDATES=(\d+

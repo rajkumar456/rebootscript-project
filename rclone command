@@ -13,3 +13,329 @@ rclone mount cache-oci:/ /mnt/oci-cached \
   --checkers 16 \
   --log-level INFO \
   --log-file /var/log/rclone-cache.log
+
+
+
+
+
+# RClone Cache Setup Guide for OCI Linux Server
+
+## Prerequisites
+- OCI Linux server with 2TB block storage attached
+- Existing rclone configuration for OCI Object Storage
+- Root or sudo access
+
+## Step 1: Prepare the 2TB Block Storage
+
+### Identify the Block Storage Device
+```bash
+# List all block devices
+lsblk
+
+# Check for newly attached storage (usually /dev/sdb, /dev/sdc, etc.)
+sudo fdisk -l
+```
+
+### Format and Mount the Block Storage
+```bash
+# Create a filesystem (ext4 recommended for cache)
+sudo mkfs.ext4 /dev/sdb  # Replace with your actual device
+
+# Create mount point
+sudo mkdir -p /mnt/rclone-cache
+
+# Mount the storage
+sudo mount /dev/sdb /mnt/rclone-cache
+
+# Set permissions
+sudo chmod 755 /mnt/rclone-cache
+sudo chown $(whoami):$(whoami) /mnt/rclone-cache
+```
+
+### Make Mount Persistent
+```bash
+# Get UUID of the device
+sudo blkid /dev/sdb
+
+# Add to fstab
+echo "UUID=your-uuid-here /mnt/rclone-cache ext4 defaults 0 2" | sudo tee -a /etc/fstab
+```
+
+## Step 2: Install/Update RClone
+
+### Install RClone (if not already installed)
+```bash
+# Download and install latest rclone
+curl https://rclone.org/install.sh | sudo bash
+
+# Verify installation
+rclone version
+```
+
+## Step 3: Configure RClone Cache
+
+### Create Cache Remote Configuration
+```bash
+# Start rclone configuration
+rclone config
+
+# Follow these steps:
+# 1. Choose 'n' for new remote
+# 2. Name it 'cache-oci' (or your preferred name)
+# 3. Choose 'cache' from the storage types
+# 4. Set remote to your existing OCI remote (e.g., 'oci-storage:bucket-name')
+# 5. Set cache directory to '/mnt/rclone-cache'
+```
+
+### Manual Configuration Alternative
+Create or edit `~/.config/rclone/rclone.conf`:
+
+```ini
+[oci-storage]
+type = s3
+provider = Other
+access_key_id = your-access-key
+secret_access_key = your-secret-key
+region = your-region
+endpoint = your-namespace.compat.objectstorage.your-region.oraclecloud.com
+
+[cache-oci]
+type = cache
+remote = oci-storage:your-bucket-name
+cache_dir = /mnt/rclone-cache
+cache_chunk_size = 64M
+cache_chunk_total_size = 1500G
+cache_chunk_clean_interval = 1h
+cache_info_age = 72h
+cache_chunk_no_memory = true
+cache_workers = 4
+cache_writes = true
+cache_tmp_upload_path = /mnt/rclone-cache/tmp
+```
+
+## Key Cache Settings Explained
+
+### VFS Cache Settings (Mount Command)
+- `--vfs-cache-mode full` - Cache both reads and writes locally
+- `--vfs-cache-max-age 24h` - Keep cached files for 24 hours
+- `--vfs-cache-max-size 500G` - Maximum VFS cache size
+- `--vfs-read-chunk-size 64M` - Size of read chunks
+- `--vfs-write-back 30s` - Write back to remote after 30 seconds
+- `--vfs-read-ahead 128M` - Read ahead buffer size
+- `--cache-dir /mnt/rclone-cache/vfs` - VFS cache directory
+- `--transfers 4` - Number of parallel transfers
+- `--checkers 8` - Number of checkers for file integrity
+
+### Backend Cache Settings (rclone.conf)
+- `cache_chunk_size = 64M` - Backend cache chunk size
+- `cache_chunk_total_size = 1500G` - Total backend cache size
+- `cache_workers = 4` - Parallel backend operations
+- `cache_writes = true` - Enable write caching at backend level
+
+### Recommended Cache Configuration Parameters
+
+```bash
+# Edit your rclone config with these optimized settings:
+rclone config edit cache-oci
+```
+
+**Key Parameters:**
+- `cache_chunk_size = 64M` - Larger chunks reduce API calls
+- `cache_chunk_total_size = 1500G` - Use ~75% of 2TB for cache
+- `cache_chunk_clean_interval = 1h` - Clean up old chunks hourly
+- `cache_info_age = 72h` - Keep metadata for 3 days
+- `cache_chunk_no_memory = true` - Don't use RAM for chunks
+- `cache_workers = 4` - Parallel operations
+- `cache_writes = true` - Cache write operations
+- `cache_tmp_upload_path = /mnt/rclone-cache/tmp` - Temporary upload location
+
+## Step 5: Create Mount Points and Scripts
+
+### Create Cache Mount Directory
+```bash
+sudo mkdir -p /mnt/oci-cached
+sudo chown $(whoami):$(whoami) /mnt/oci-cached
+```
+
+### Create Mount Script
+```bash
+cat << 'EOF' > /home/$(whoami)/mount-oci-cache.sh
+#!/bin/bash
+
+# Mount OCI storage with cache
+rclone mount cache-oci:/ /mnt/oci-cached \
+  --daemon \
+  --allow-other \
+  --vfs-cache-mode full \
+  --vfs-cache-max-age 24h \
+  --vfs-cache-max-size 500G \
+  --vfs-read-chunk-size 64M \
+  --vfs-read-chunk-size-limit 512M \
+  --vfs-write-back 30s \
+  --vfs-read-ahead 128M \
+  --buffer-size 64M \
+  --cache-dir /mnt/rclone-cache/vfs \
+  --transfers 4 \
+  --checkers 8 \
+  --low-level-retries 3 \
+  --stats 30s \
+  --log-level INFO \
+  --log-file /var/log/rclone-cache.log
+
+echo "RClone cache mount started"
+EOF
+
+chmod +x /home/$(whoami)/mount-oci-cache.sh
+```
+
+### Create Unmount Script
+```bash
+cat << 'EOF' > /home/$(whoami)/unmount-oci-cache.sh
+#!/bin/bash
+
+# Unmount OCI cache
+fusermount -u /mnt/oci-cached
+echo "RClone cache unmounted"
+EOF
+
+chmod +x /home/$(whoami)/unmount-oci-cache.sh
+```
+
+## Step 6: Create Systemd Service (Optional)
+
+### Create Service File
+```bash
+sudo tee /etc/systemd/system/rclone-cache.service << EOF
+[Unit]
+Description=RClone Cache Mount
+After=network.target
+
+[Service]
+Type=simple
+User=$(whoami)
+Group=$(whoami)
+ExecStart=/usr/bin/rclone mount cache-oci:/ /mnt/oci-cached --daemon --allow-other --vfs-cache-mode full --vfs-cache-max-age 24h --vfs-cache-max-size 500G --vfs-read-chunk-size 64M --vfs-write-back 30s --vfs-read-ahead 128M --buffer-size 64M --cache-dir /mnt/rclone-cache/vfs --transfers 4 --checkers 8 --log-level INFO --log-file /var/log/rclone-cache.log
+ExecStop=/bin/fusermount -u /mnt/oci-cached
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+EOF
+```
+
+### Enable and Start Service
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable rclone-cache.service
+sudo systemctl start rclone-cache.service
+sudo systemctl status rclone-cache.service
+```
+
+## Step 7: Test the Setup
+
+### Test Cache Performance
+```bash
+# Test write performance
+time dd if=/dev/zero of=/mnt/oci-cached/test-file bs=1M count=1000
+
+# Test read performance
+time dd if=/mnt/oci-cached/test-file of=/dev/null bs=1M
+
+# Check cache usage
+du -sh /mnt/rclone-cache/
+```
+
+### Monitor Cache Statistics
+```bash
+# Check cache stats
+rclone cache stats cache-oci:
+
+# Monitor ongoing operations
+watch -n 5 'rclone cache stats cache-oci:'
+```
+
+## Step 8: Monitoring and Maintenance
+
+### Log Monitoring
+```bash
+# Monitor rclone logs
+tail -f /var/log/rclone-cache.log
+
+# Check system logs
+journalctl -u rclone-cache.service -f
+```
+
+### Cache Maintenance Script
+```bash
+cat << 'EOF' > /home/$(whoami)/cache-maintenance.sh
+#!/bin/bash
+
+# Clean cache periodically
+echo "Starting cache maintenance..."
+
+# Check cache size
+CACHE_SIZE=$(du -s /mnt/rclone-cache | cut -f1)
+echo "Current cache size: $CACHE_SIZE KB"
+
+# Clean old chunks if cache is over 80% full
+if [ $CACHE_SIZE -gt 1600000000 ]; then
+    echo "Cache is over 80% full, cleaning..."
+    find /mnt/rclone-cache -type f -atime +7 -delete
+fi
+
+echo "Cache maintenance completed"
+EOF
+
+chmod +x /home/$(whoami)/cache-maintenance.sh
+```
+
+### Add to Crontab
+```bash
+# Add maintenance script to crontab (runs daily at 2 AM)
+(crontab -l 2>/dev/null; echo "0 2 * * * /home/$(whoami)/cache-maintenance.sh >> /var/log/cache-maintenance.log 2>&1") | crontab -
+```
+
+## Step 9: Backup Script Integration
+
+### Update Your Backup Scripts
+Replace direct OCI storage paths with cached mount:
+
+**Before:**
+```bash
+# Old backup command
+backup_tool --source /data --destination oci-storage:bucket/path
+```
+
+**After:**
+```bash
+# New backup command using cache
+backup_tool --source /data --destination /mnt/oci-cached/path
+```
+
+## Troubleshooting
+
+### Common Issues
+1. **Permission Denied**: Ensure proper ownership of cache directory
+2. **Mount Fails**: Check if FUSE is installed (`sudo yum install fuse`)
+3. **High Memory Usage**: Ensure `cache_chunk_no_memory = true`
+4. **Slow Performance**: Adjust chunk sizes and worker count
+
+### Performance Tuning
+- Increase `cache_workers` for more parallel operations
+- Adjust `cache_chunk_size` based on your typical file sizes
+- Monitor and adjust `cache_chunk_total_size` based on usage patterns
+
+### Health Checks
+```bash
+# Check if mount is active
+df -h | grep oci-cached
+
+# Check cache directory
+ls -la /mnt/rclone-cache/
+
+# Test connectivity
+rclone ls cache-oci: --max-items 10
+```
+
+This setup will significantly reduce IOPS on your OCI Object Storage by caching frequently accessed data on the local 2TB block storage, improving backup performance and reducing alerts.

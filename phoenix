@@ -1,1 +1,8 @@
 DRArchive2Bucket:maxit-phx-dr-shrd-archive2-bucket  1.0P     0  1.0P   0% /data
+
+
+rclone mount ProdArchiveBucket:maxit-phx-dr-shrd-archive2-bucket /mnt/rclone_cache \
+  --daemon \
+  --vfs-cache-mode full \
+  --cache-dir /mnt/rclone-cache \
+  --vfs-cache-max-size 1500G

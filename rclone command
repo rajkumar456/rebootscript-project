@@ -1,0 +1,15 @@
+rclone mount cache-oci:/ /mnt/oci-cached \
+  --daemon \
+  --allow-other \
+  --vfs-cache-mode full \
+  --vfs-cache-max-age 48h \
+  --vfs-cache-max-size 800G \
+  --vfs-read-chunk-size 128M \
+  --vfs-write-back 60s \
+  --vfs-read-ahead 256M \
+  --buffer-size 128M \
+  --cache-dir /mnt/rclone-cache/vfs \
+  --transfers 8 \
+  --checkers 16 \
+  --log-level INFO \
+  --log-file /var/log/rclone-cache.log

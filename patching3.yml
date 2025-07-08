@@ -1,0 +1,52 @@
+---
+- name: Oracle Linux Patching Playbook
+  hosts: all
+  become: yes
+  
+  tasks:
+    # Install versionlock plugin
+    - name: Install dnf versionlock plugin
+      dnf:
+        name: python3-dnf-plugin-versionlock
+        state: present
+    
+    # Lock packages
+    - name: Lock Java, httpd, and tomcat packages
+      shell: |
+        dnf versionlock add java* java-*-oracle* java-*-ibm* jdk* jre* oracle-j2sdk* ibm-java*
+        dnf versionlock add httpd* apache* tomcat*
+      ignore_errors: yes
+    
+    # Security updates
+    - name: Apply security updates
+      dnf:
+        name: "*"
+        state: latest
+        security: yes
+        exclude: "java*,httpd*,apache*,tomcat*"
+    
+    # Kernel updates
+    - name: Update kernel
+      dnf:
+        name: 
+          - kernel
+          - kernel-core
+          - kernel-modules
+        state: latest
+    
+    # General updates (excluding locked packages)
+    - name: Apply all updates
+      dnf:
+        name: "*"
+        state: latest
+        exclude: "java*,httpd*,apache*,tomcat*"
+    
+    # Clean cache
+    - name: Clean dnf cache
+      command: dnf clean all
+    
+    # Reboot
+    - name: Reboot the system
+      reboot:
+        msg: "Rebooting after patching"
+        reboot_timeout: 600

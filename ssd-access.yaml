@@ -1,0 +1,94 @@
+---
+# ssh_access_check.yml
+- name: Check Server Reachability and SSH Access
+  hosts: all
+  gather_facts: no
+  serial: 10
+  vars:
+    ansible_ssh_common_args: '-o StrictHostKeyChecking=no -o PreferredAuthentications=password -o PubkeyAuthentication=no -o ConnectTimeout=10'
+    success_file: "./successful_logins.txt"
+    failed_file: "./failed_logins.txt"
+    unreachable_file: "./unreachable_servers.txt"
+  
+  tasks:
+    - name: Initialize log files (run once)
+      run_once: true
+      delegate_to: localhost
+      block:
+        - name: Create/Clear success log file
+          copy:
+            content: "=== Successful SSH Logins ===\nDate: {{ lookup('pipe', 'date') }}\n\n"
+            dest: "{{ success_file }}"
+          
+        - name: Create/Clear failed log file
+          copy:
+            content: "=== Failed SSH Logins ===\nDate: {{ lookup('pipe', 'date') }}\n\n"
+            dest: "{{ failed_file }}"
+            
+        - name: Create/Clear unreachable servers file
+          copy:
+            content: "=== Unreachable Servers ===\nDate: {{ lookup('pipe', 'date') }}\n\n"
+            dest: "{{ unreachable_file }}"
+    
+    - name: Check server reachability
+      block:
+        - name: Ping server to check if reachable
+          wait_for:
+            host: "{{ ansible_host | default(inventory_hostname) }}"
+            port: 22
+            timeout: 5
+            delay: 0
+          delegate_to: localhost
+          register: ping_result
+          
+        - name: Test SSH connection if server is reachable
+          block:
+            - name: Attempt SSH connection
+              command: hostname
+              register: connection_test
+              changed_when: false
+              
+            - name: Log successful connection
+              lineinfile:
+                path: "{{ success_file }}"
+                line: "{{ inventory_hostname }} | User: {{ ansible_user }} | Hostname: {{ connection_test.stdout }} | Time: {{ lookup('pipe', 'date +%Y-%m-%d_%H:%M:%S') }}"
+                create: yes
+              delegate_to: localhost
+              
+          rescue:
+            - name: Log failed SSH connection
+              lineinfile:
+                path: "{{ failed_file }}"
+                line: "{{ inventory_hostname }} | User: {{ ansible_user }} | Error: {{ ansible_failed_result.msg | default('SSH Authentication failed') }} | Time: {{ lookup('pipe', 'date +%Y-%m-%d_%H:%M:%S') }}"
+                create: yes
+              delegate_to: localhost
+              
+      rescue:
+        - name: Log unreachable server
+          lineinfile:
+            path: "{{ unreachable_file }}"
+            line: "{{ inventory_hostname }} | Status: Unreachable (Port 22 not responding) | Time: {{ lookup('pipe', 'date +%Y-%m-%d_%H:%M:%S') }}"
+            create: yes
+          delegate_to: localhost
+    
+    - name: Display summary (run once at end)
+      run_once: true
+      delegate_to: localhost
+      block:
+        - name: Count results
+          shell: |
+            success_count=$(grep -c "^[^=]" {{ success_file }} || echo 0)
+            failed_count=$(grep -c "^[^=]" {{ failed_file }} || echo 0)
+            unreachable_count=$(grep -c "^[^=]" {{ unreachable_file }} || echo 0)
+            echo "===================================="
+            echo "Total hosts checked: {{ groups['all'] | length }}"
+            echo "Successful logins: $success_count"
+            echo "Failed logins: $failed_count"
+            echo "Unreachable servers: $unreachable_count"
+            echo "===================================="
+          register: summary
+          changed_when: false
+          
+        - name: Display summary
+          debug:
+            msg: "{{ summary.stdout_lines }}"

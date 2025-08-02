@@ -1,0 +1,56 @@
+# Simple Oracle Linux Reboot Script with Essential System Info
+# File: reboot_oracle_linux.yml
+- name: Reboot Oracle Linux server and display system information
+  hosts: all
+  become: yes
+  gather_facts: true
+  
+  tasks:
+    - name: "Reboot the server safely"
+      reboot:
+        reboot_timeout: 600
+        connect_timeout: 20
+        test_command: uptime
+      
+    - name: "Wait for 3 minutes after reboot"
+      pause:
+        minutes: 3
+        prompt: "Waiting 3 minutes after reboot for system to stabilize..."
+        
+    - name: "Get server uptime after reboot"
+      shell: uptime
+      register: server_uptime
+      
+    - name: "Get Oracle Linux OS version"
+      shell: cat /etc/os-release
+      register: os_version
+      
+    - name: "Get kernel version"
+      shell: |
+        echo "Kernel: $(uname -r)"
+        echo "Type: $(uname -r | grep -q 'uek' && echo 'Oracle UEK' || echo 'RHCK')"
+      register: kernel_version
+      
+    - name: "Get firmware version"
+      shell: |
+        if command -v dmidecode >/dev/null 2>&1; then
+          dmidecode -s bios-version 2>/dev/null || echo "BIOS info not available"
+        else
+          echo "dmidecode not available"
+        fi
+      register: firmware_version
+      ignore_errors: yes
+      
+    - name: "Display system information"
+      debug:
+        msg: |
+          ==========================================
+          ORACLE LINUX REBOOT COMPLETED!
+          ==========================================
+          Server: {{ inventory_hostname }}
+          Uptime: {{ server_uptime.stdout }}
+          
+          OS Version: {{ os_version.stdout }}
+          {{ kernel_version.stdout }}
+          Firmware: {{ firmware_version.stdout }}
+          ==========================================

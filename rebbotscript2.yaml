@@ -54,3 +54,20 @@
           {{ kernel_version.stdout }}
           Firmware: {{ firmware_version.stdout }}
           ==========================================
+
+    - name: "Send email notification with system info"
+      shell: |
+        {
+          echo "Server: {{ inventory_hostname }}"
+          echo "Uptime: {{ server_uptime.stdout }}"
+          echo ""
+          echo "OS Version:"
+          echo "{{ os_version.stdout }}"
+          echo ""
+          echo "{{ kernel_version.stdout }}"
+          echo ""
+          echo "Firmware: {{ firmware_version.stdout }}"
+          echo ""
+          echo "Reboot completed at: $(date)"
+        } | mailx -s "Oracle Linux Reboot Complete - {{ inventory_hostname }}" admin@company.com
+      ignore_errors: yes

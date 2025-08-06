@@ -416,119 +416,114 @@
       delegate_to: localhost
 
     # ========================================
-    # SEND EMAIL REPORT VIA SENDMAIL
+    # SEND EMAIL REPORT VIA MAILX
     # ========================================
-    - name: "Send comprehensive email report via sendmail"
+    - name: "Send comprehensive email report via mailx"
       shell: |
-        {
-          echo "To: {{ email_to }}"
-          echo "From: {{ email_from }}"
-          echo "Subject: Linux Server Pre-check Report - {{ inventory_hostname }}"
-          echo "Content-Type: text/plain; charset=UTF-8"
-          echo ""
-          echo "==============================================="
-          echo "LINUX SERVER PRE-CHECK REPORT"
-          echo "==============================================="
-          echo "Hostname: {{ inventory_hostname }}"
-          echo "Generated: {{ ansible_date_time.iso8601 }}"
-          echo "==============================================="
-          echo ""
-          echo "## OPERATING SYSTEM INFORMATION"
-          echo "Distribution: {{ ansible_distribution }}"
-          echo "Version: {{ ansible_distribution_version }}"
-          echo "Kernel: {{ kernel_version.stdout }}"
-          echo "Uptime: {{ system_uptime.stdout }}"
-          echo ""
-          echo "OS Release Details:"
-          echo "{{ os_release_info.stdout }}"
-          echo ""
-          echo "## HARDWARE/FIRMWARE INFORMATION"
-          echo "BIOS Version: {{ bios_version.stdout | default('Unknown') }}"
-          echo ""
-          echo "System Details:"
-          echo "{{ system_info.stdout }}"
-          echo ""
-          echo "CPU Information:"
-          echo "{{ cpu_info.stdout }}"
-          echo ""
-          echo "Memory Information:"
-          echo "{{ memory_info.stdout }}"
-          echo ""
-          echo "## FILESYSTEM UTILIZATION"
-          echo "Disk Usage:"
-          echo "{{ filesystem_usage.stdout }}"
-          echo ""
-          echo "Inode Usage:"
-          echo "{{ inode_usage.stdout }}"
-          echo ""
-          {% if high_usage_fs.stdout %}
-          echo "⚠️  FILESYSTEM ALERT - HIGH USAGE DETECTED:"
-          echo "{{ high_usage_fs.stdout }}"
-          {% else %}
-          echo "✓ FILESYSTEM STATUS: All filesystems under 80% usage"
-          {% endif %}
-          echo ""
-          echo "Mount Points:"
-          echo "{{ mount_points.stdout }}"
-          echo ""
-          echo "## NETWORK CONFIGURATION"
-          echo "IP Addresses:"
-          echo "{{ ip_addresses.stdout }}"
-          echo ""
-          echo "Network Interfaces:"
-          echo "{{ network_interfaces.stdout }}"
-          echo ""
-          echo "DNS Configuration:"
-          echo "{{ dns_config.stdout }}"
-          echo ""
-          echo "## RUNNING SERVICES"
-          echo "Running Services (SystemD):"
-          echo "{{ running_services.stdout }}"
-          echo ""
-          echo "Enabled Services:"
-          echo "{{ enabled_services.stdout }}"
-          echo ""
-          echo "## VERSION INFORMATION"
-          echo "HTTPD/Apache Details:"
-          echo "{{ apache_version.stdout }}"
-          echo ""
-          echo "Apache Service Status:"
-          echo "{{ apache_status.stdout }}"
-          echo ""
-          echo "Java Version Details:"
-          echo "{{ java_version.stdout }}"
-          echo ""
-          echo "Tomcat Version Details:"
-          echo "{{ tomcat_version.stdout }}"
-          echo ""
-          echo "## CUSTOM PORT MONITORING"
-          echo "HTTPD Custom Ports (8800, 8801):"
-          echo "{{ httpd_ports.stdout }}"
-          echo ""
-          echo "Tomcat Ports (9800, 9801, 9802, 9803):"
-          echo "{{ tomcat_ports.stdout }}"
-          echo ""
-          echo "All Web Ports Summary:"
-          echo "{{ all_web_ports.stdout }}"
-          echo ""
-          echo "## SYSTEM HEALTH METRICS"
-          echo "Load Average: {{ load_average.stdout }}"
-          echo ""
-          echo "Disk I/O Statistics:"
-          echo "{{ disk_io.stdout }}"
-          echo ""
-          echo "Currently Logged Users:"
-          echo "{{ logged_users.stdout }}"
-          echo ""
-          echo "Last Reboot:"
-          echo "{{ last_reboot.stdout }}"
-          echo ""
-          echo "==============================================="
-          echo "END OF REPORT - {{ inventory_hostname }}"
-          echo "==============================================="
-        } | /usr/sbin/sendmail {{ email_to }}
-      delegate_to: localhost
-      run_once: true
+        mailx -s "Linux Server Pre-check Report - {{ inventory_hostname }}" \
+              -r "{{ email_from }}" \
+              "{{ email_to }}" << 'EOF'
+        ===============================================
+        LINUX SERVER PRE-CHECK REPORT
+        ===============================================
+        Hostname: {{ inventory_hostname }}
+        Generated: {{ ansible_date_time.iso8601 }}
+        ===============================================
+
+        ## OPERATING SYSTEM INFORMATION
+        Distribution: {{ ansible_distribution }}
+        Version: {{ ansible_distribution_version }}
+        Kernel: {{ kernel_version.stdout }}
+        Uptime: {{ system_uptime.stdout }}
+
+        OS Release Details:
+        {{ os_release_info.stdout }}
+
+        ## HARDWARE/FIRMWARE INFORMATION
+        BIOS Version: {{ bios_version.stdout | default('Unknown') }}
+
+        System Details:
+        {{ system_info.stdout }}
+
+        CPU Information:
+        {{ cpu_info.stdout }}
+
+        Memory Information:
+        {{ memory_info.stdout }}
+
+        ## FILESYSTEM UTILIZATION
+        Disk Usage:
+        {{ filesystem_usage.stdout }}
+
+        Inode Usage:
+        {{ inode_usage.stdout }}
+
+        {% if high_usage_fs.stdout %}
+        ⚠️  FILESYSTEM ALERT - HIGH USAGE DETECTED:
+        {{ high_usage_fs.stdout }}
+        {% else %}
+        ✓ FILESYSTEM STATUS: All filesystems under 80% usage
+        {% endif %}
+
+        Mount Points:
+        {{ mount_points.stdout }}
+
+        ## NETWORK CONFIGURATION
+        IP Addresses:
+        {{ ip_addresses.stdout }}
+
+        Network Interfaces:
+        {{ network_interfaces.stdout }}
+
+        DNS Configuration:
+        {{ dns_config.stdout }}
+
+        ## RUNNING SERVICES
+        Running Services (SystemD):
+        {{ running_services.stdout }}
+
+        Enabled Services:
+        {{ enabled_services.stdout }}
+
+        ## VERSION INFORMATION
+        HTTPD/Apache Details:
+        {{ apache_version.stdout }}
+
+        Apache Service Status:
+        {{ apache_status.stdout }}
+
+        Java Version Details:
+        {{ java_version.stdout }}
+
+        Tomcat Version Details:
+        {{ tomcat_version.stdout }}
+
+        ## CUSTOM PORT MONITORING
+        HTTPD Custom Ports (8800, 8801):
+        {{ httpd_ports.stdout }}
+
+        Tomcat Ports (9800, 9801, 9802, 9803):
+        {{ tomcat_ports.stdout }}
+
+        All Web Ports Summary:
+        {{ all_web_ports.stdout }}
+
+        ## SYSTEM HEALTH METRICS
+        Load Average: {{ load_average.stdout }}
+
+        Disk I/O Statistics:
+        {{ disk_io.stdout }}
+
+        Currently Logged Users:
+        {{ logged_users.stdout }}
+
+        Last Reboot:
+        {{ last_reboot.stdout }}
+
+        ===============================================
+        END OF REPORT - {{ inventory_hostname }}
+        ===============================================
+        EOF
       ignore_errors: true
 
     # ========================================

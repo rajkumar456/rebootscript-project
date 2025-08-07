@@ -1,10 +1,16 @@
 ---
-# Complete Linux Server Pre-checks Playbook with Email
-# File: playbooks/linux_server_prechecks_complete.yml
+# AWX/Tower Compatible Linux Server Pre-checks Playbook with Email
+# File: playbooks/linux_server_prechecks_awx.yml
+
+# Import server info (if needed)
 - name: Linux Server Pre-checks with Email Report
   import_playbook: ../build-server-info.yml
-  
-- hosts: application_cbr:&frontend 
+
+# Fixed host pattern - choose one of these options:
+# Option 1: Run on all CBR application servers
+- hosts: application_cbr
+
+
   gather_facts: true
   become: yes
   
@@ -12,13 +18,24 @@
     # ========================================
     # EMAIL CONFIGURATION - CHANGE THESE
     # ========================================
-    email_from: "ansible@maxitcbt.com"                  # Change to your sender email
-    email_to: "rajkumar.deva@betanxt.com"               # Change to your recipient email
+    email_from: "ansible@maxitcbt.com"
+    email_to: "rajkumar.deva@betanxt.com"
+    # Create reports in /tmp instead of localhost
+    report_dir: "/tmp/ansible_reports"
 
   tasks:
     - name: "=== STARTING PRE-CHECKS FOR {{ inventory_hostname }} ==="
       debug:
         msg: "Beginning comprehensive system pre-checks"
+
+    # ========================================
+    # CREATE REPORTS DIRECTORY ON TARGET HOST
+    # ========================================
+    - name: "Create reports directory on target host"
+      file:
+        path: "{{ report_dir }}"
+        state: directory
+        mode: '0755'
 
     # ========================================
     # OS VERSION AND SYSTEM INFO
@@ -299,19 +316,12 @@
       changed_when: false
 
     # ========================================
-    # SAVE REPORT FILE ON CONTROL NODE
+    # SAVE REPORT FILE ON TARGET HOST
     # ========================================
-    - name: "Create reports directory on control node"
-      file:
-        path: "./reports"
-        state: directory
-        mode: '0755'
-      delegate_to: localhost
-      run_once: true
-
-    - name: "Generate report file on control node"
+    - name: "Generate report file on target host"
       copy:
-        dest: "./reports/{{ inventory_hostname }}_precheck_{{ ansible_date_time.date }}_{{ ansible_date_time.hour }}{{ ansible_date_time.minute }}{{ ansible_date_time.second }}.txt"
+        dest: "{{ report_dir }}/{{ inventory_hostname }}_precheck_{{ ansible_date_time.date }}_{{ ansible_date_time.hour }}{{ ansible_date_time.minute }}{{ ansible_date_time.second }}.txt"
+        mode: '0644'
         content: |
           ===============================================
           LINUX SERVER PRE-CHECK REPORT
@@ -413,51 +423,26 @@
           ===============================================
           END OF REPORT - {{ inventory_hostname }}
           ===============================================
-      delegate_to: localhost
 
     # ========================================
-    # SEND EMAIL REPORT VIA MAILX
+    # SEND EMAIL REPORT VIA MAILX (SIMPLIFIED)
     # ========================================
     - name: "Send comprehensive email report via mailx"
       shell: |
-        mailx -s "Linux Server Pre-check Report - {{ inventory_hostname }}" \
-              -r "{{ email_from }}" \
-              "{{ email_to }}" << 'EOF'
+        cat << 'EOF' | mailx -s "Linux Server Pre-check Report - {{ inventory_hostname }}" -r "{{ email_from }}" "{{ email_to }}"
         ===============================================
         LINUX SERVER PRE-CHECK REPORT
         ===============================================
         Hostname: {{ inventory_hostname }}
         Generated: {{ ansible_date_time.iso8601 }}
-        ===============================================
-
-        ## OPERATING SYSTEM INFORMATION
-        Distribution: {{ ansible_distribution }}
-        Version: {{ ansible_distribution_version }}
+        Distribution: {{ ansible_distribution }} {{ ansible_distribution_version }}
         Kernel: {{ kernel_version.stdout }}
         Uptime: {{ system_uptime.stdout }}
+        ===============================================
 
-        OS Release Details:
-        {{ os_release_info.stdout }}
-
-        ## HARDWARE/FIRMWARE INFORMATION
-        BIOS Version: {{ bios_version.stdout | default('Unknown') }}
-
-        System Details:
-        {{ system_info.stdout }}
-
-        CPU Information:
-        {{ cpu_info.stdout }}
-
-        Memory Information:
-        {{ memory_info.stdout }}
-
-        ## FILESYSTEM UTILIZATION
-        Disk Usage:
-        {{ filesystem_usage.stdout }}
-
-        Inode Usage:
-        {{ inode_usage.stdout }}
-
+        HTTPD/Apache: {{ (apache_version.stdout | regex_search('Server version: Apache/[0-9.]+')) | default('Not found') }}
+        Java: {{ (java_version.stdout | regex_search('java version "[^"]+"')) | default('Not found') }}
+        
         {% if high_usage_fs.stdout %}
         ⚠️  FILESYSTEM ALERT - HIGH USAGE DETECTED:
         {{ high_usage_fs.stdout }}
@@ -465,63 +450,14 @@
         ✓ FILESYSTEM STATUS: All filesystems under 80% usage
         {% endif %}
 
-        Mount Points:
-        {{ mount_points.stdout }}
-
-        ## NETWORK CONFIGURATION
-        IP Addresses:
-        {{ ip_addresses.stdout }}
-
-        Network Interfaces:
-        {{ network_interfaces.stdout }}
-
-        DNS Configuration:
-        {{ dns_config.stdout }}
-
-        ## RUNNING SERVICES
-        Running Services (SystemD):
-        {{ running_services.stdout }}
-
-        Enabled Services:
-        {{ enabled_services.stdout }}
-
-        ## VERSION INFORMATION
-        HTTPD/Apache Details:
-        {{ apache_version.stdout }}
-
-        Apache Service Status:
-        {{ apache_status.stdout }}
-
-        Java Version Details:
-        {{ java_version.stdout }}
-
-        Tomcat Version Details:
-        {{ tomcat_version.stdout }}
-
-        ## CUSTOM PORT MONITORING
-        HTTPD Custom Ports (8800, 8801):
+        Custom Ports Status:
         {{ httpd_ports.stdout }}
-
-        Tomcat Ports (9800, 9801, 9802, 9803):
         {{ tomcat_ports.stdout }}
 
-        All Web Ports Summary:
-        {{ all_web_ports.stdout }}
+        Memory: {{ memory_info.stdout | regex_replace('\n', ' ') }}
+        Load: {{ load_average.stdout }}
 
-        ## SYSTEM HEALTH METRICS
-        Load Average: {{ load_average.stdout }}
-
-        Disk I/O Statistics:
-        {{ disk_io.stdout }}
-
-        Currently Logged Users:
-        {{ logged_users.stdout }}
-
-        Last Reboot:
-        {{ last_reboot.stdout }}
-
-        ===============================================
-        END OF REPORT - {{ inventory_hostname }}
+        Full report saved: {{ report_dir }}/{{ inventory_hostname }}_precheck_{{ ansible_date_time.date }}_{{ ansible_date_time.hour }}{{ ansible_date_time.minute }}{{ ansible_date_time.second }}.txt
         ===============================================
         EOF
       ignore_errors: true
@@ -540,15 +476,10 @@
           Uptime: {{ system_uptime.stdout }}
           
           VERSION INFORMATION:
-          - HTTPD/Apache: {{ apache_version.stdout | regex_search('Server version: Apache/[0-9.]+') | default('Not found') }}
-          - Java: {{ java_version.stdout | regex_search('java version "[^"]+"') | default('Not found') }}
-          - Tomcat: {{ tomcat_version.stdout | regex_search('Server version: Apache Tomcat/[0-9.]+') | default('Not found') }}
+          - HTTPD/Apache: {{ (apache_version.stdout | regex_search('Server version: Apache/[0-9.]+')) | default('Not found') }}
+          - Java: {{ (java_version.stdout | regex_search('java version "[^"]+"')) | default('Not found') }}
+          - Tomcat: {{ (tomcat_version.stdout | regex_search('Server version: Apache Tomcat/[0-9.]+')) | default('Not found') }}
           
-          CUSTOM PORTS STATUS:
-          HTTPD (8800, 8801): {{ httpd_ports.stdout.split('\n')[1:3] | join(' | ') }}
-          Tomcat (9800-9803): {{ tomcat_ports.stdout.split('\n')[1:5] | join(' | ') }}
-          
-          CRITICAL ALERTS:
           {% if high_usage_fs.stdout %}
           ⚠️  WARNING: High filesystem usage detected:
           {{ high_usage_fs.stdout }}
@@ -556,18 +487,13 @@
           ✓ All filesystems under 80% usage
           {% endif %}
           
-          EMAIL REPORT SENT:
-          From: {{ email_from }}
-          To: {{ email_to }}
-          Subject: Linux Server Pre-check Report - {{ inventory_hostname }}
-          
-          REPORT FILE SAVED:
-          Location: ./reports/{{ inventory_hostname }}_precheck_{{ ansible_date_time.date }}_{{ ansible_date_time.hour }}{{ ansible_date_time.minute }}{{ ansible_date_time.second }}.txt
+          EMAIL REPORT SENT TO: {{ email_to }}
+          REPORT FILE SAVED: {{ report_dir }}/{{ inventory_hostname }}_precheck_{{ ansible_date_time.date }}_{{ ansible_date_time.hour }}{{ ansible_date_time.minute }}{{ ansible_date_time.second }}.txt
           ================================================
 
     - name: "Pre-checks completed successfully"
       debug:
         msg: |
-          All pre-checks completed for {{ inventory_hostname }}.
+          Pre-checks completed for {{ inventory_hostname }}.
           Email report sent to {{ email_to }}
-          Report file saved: ./reports/{{ inventory_hostname }}_precheck_{{ ansible_date_time.date }}_{{ ansible_date_time.hour }}{{ ansible_date_time.minute }}{{ ansible_date_time.second }}.txt
+          Report saved on {{ inventory_hostname }}: {{ report_dir }}/{{ inventory_hostname }}_precheck_{{ ansible_date_time.date }}_{{ ansible_date_time.hour }}{{ ansible_date_time.minute }}{{ ansible_date_time.second }}.txt

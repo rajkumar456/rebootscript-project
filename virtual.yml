@@ -1,0 +1,236 @@
+---
+- name: Check if servers are physical or virtual (ansible user compatible)
+  hosts: all
+  gather_facts: yes
+  vars:
+    physical_servers_file: "/tmp/physical_servers.txt"
+    virtual_servers_file: "/tmp/virtual_servers.txt"
+  
+  tasks:
+    - name: Gather system information
+      setup:
+        gather_subset:
+          - hardware
+          - virtual
+
+    - name: Debug virtualization facts
+      debug:
+        msg: 
+          - "Server: {{ inventory_hostname }}"
+          - "Virtualization type: {{ ansible_virtualization_type | default('unknown') }}"
+          - "Virtualization role: {{ ansible_virtualization_role | default('unknown') }}"
+          - "System vendor: {{ ansible_system_vendor | default('unknown') }}"
+          - "Product name: {{ ansible_product_name | default('unknown') }}"
+          - "OS: {{ ansible_distribution }} {{ ansible_distribution_version }}"
+
+    - name: Check additional virtualization indicators (non-root methods)
+      shell: |
+        # Check for virtualization indicators without requiring root
+        VIRT_INDICATORS=""
+        
+        # Check for hypervisor presence in cpuinfo
+        if [ -f /proc/cpuinfo ]; then
+          HYPERVISOR=$(grep -i hypervisor /proc/cpuinfo | head -1 || echo "")
+          [ -n "$HYPERVISOR" ] && VIRT_INDICATORS="$VIRT_INDICATORS HYPERVISOR_FLAG:yes"
+        fi
+        
+        # Check for container environment
+        if [ -f /.dockerenv ] || [ -n "${container:-}" ]; then
+          VIRT_INDICATORS="$VIRT_INDICATORS CONTAINER:yes"
+        fi
+        
+        # Check for Xen indicators (readable without root)
+        if [ -f /sys/hypervisor/uuid ] && [ -r /sys/hypervisor/uuid ]; then
+          UUID_CHECK=$(cat /sys/hypervisor/uuid 2>/dev/null || echo "")
+          [ -n "$UUID_CHECK" ] && VIRT_INDICATORS="$VIRT_INDICATORS XEN_UUID:present"
+        fi
+        
+        # Check systemd-detect-virt if available (works without root)
+        if command -v systemd-detect-virt >/dev/null 2>&1; then
+          SYSTEMD_VIRT=$(systemd-detect-virt 2>/dev/null || echo "none")
+          VIRT_INDICATORS="$VIRT_INDICATORS SYSTEMD_DETECT:$SYSTEMD_VIRT"
+        fi
+        
+        # Check for common virtualization files/directories
+        if [ -d /proc/vz ] || [ -f /proc/vz/version ]; then
+          VIRT_INDICATORS="$VIRT_INDICATORS OPENVZ:yes"
+        fi
+        
+        if [ -f /proc/xen/capabilities ]; then
+          VIRT_INDICATORS="$VIRT_INDICATORS XEN_CAPS:yes"
+        fi
+        
+        # Check dmesg for virtualization hints (may work depending on permissions)
+        if dmesg 2>/dev/null | grep -qi "hypervisor\|vmware\|virtualbox\|kvm\|xen" | head -1; then
+          VIRT_INDICATORS="$VIRT_INDICATORS DMESG_VIRT:detected"
+        fi
+        
+        echo "$VIRT_INDICATORS"
+      register: additional_virt_info
+      ignore_errors: yes
+      changed_when: false
+
+    - name: Try dmidecode with sudo (if available and configured)
+      shell: |
+        # Only try if sudo is available and passwordless for dmidecode
+        if command -v sudo >/dev/null 2>&1 && sudo -l dmidecode >/dev/null 2>&1; then
+          SYSTEM_INFO=$(sudo dmidecode -s system-manufacturer 2>/dev/null || echo "")
+          PRODUCT_INFO=$(sudo dmidecode -s system-product-name 2>/dev/null || echo "")
+          echo "SUDO_MANUFACTURER:$SYSTEM_INFO SUDO_PRODUCT:$PRODUCT_INFO"
+        else
+          echo "SUDO_DMIDECODE:unavailable"
+        fi
+      register: sudo_dmidecode_info
+      ignore_errors: yes
+      changed_when: false
+
+    - name: Display additional virtualization info
+      debug:
+        msg: 
+          - "Additional virtualization indicators: {{ additional_virt_info.stdout | default('none') }}"
+          - "Sudo dmidecode info: {{ sudo_dmidecode_info.stdout | default('not attempted') }}"
+
+    - name: Determine if server is virtual (ansible user method)
+      set_fact:
+        is_virtual: >-
+          {{
+            (ansible_virtualization_type is defined and 
+             ansible_virtualization_type != "NA" and 
+             ansible_virtualization_type != "none" and
+             ansible_virtualization_type != "") or
+            (ansible_virtualization_role is defined and ansible_virtualization_role == "guest") or
+            (ansible_system_vendor is defined and (
+              "VMware" in ansible_system_vendor or
+              "innotek GmbH" in ansible_system_vendor or
+              "QEMU" in ansible_system_vendor or
+              "Microsoft Corporation" in ansible_system_vendor or
+              "Xen" in ansible_system_vendor or
+              "Red Hat" in ansible_system_vendor or
+              "Amazon EC2" in ansible_system_vendor or
+              "Google" in ansible_system_vendor or
+              "Oracle Corporation" in ansible_system_vendor or
+              "Nutanix" in ansible_system_vendor or
+              "oVirt" in ansible_system_vendor
+            )) or
+            (ansible_product_name is defined and (
+              "VMware" in ansible_product_name or
+              "VirtualBox" in ansible_product_name or
+              "KVM" in ansible_product_name or
+              "RHEV" in ansible_product_name or
+              "HVM domU" in ansible_product_name or
+              "Bochs" in ansible_product_name or
+              "OpenStack" in ansible_product_name or
+              "Oracle VM" in ansible_product_name or
+              "oVirt" in ansible_product_name
+            )) or
+            (additional_virt_info.stdout is defined and (
+              "HYPERVISOR_FLAG:yes" in additional_virt_info.stdout or
+              "CONTAINER:yes" in additional_virt_info.stdout or
+              "OPENVZ:yes" in additional_virt_info.stdout or
+              "XEN_CAPS:yes" in additional_virt_info.stdout or
+              "XEN_UUID:present" in additional_virt_info.stdout or
+              "DMESG_VIRT:detected" in additional_virt_info.stdout or
+              ("SYSTEMD_DETECT:" in additional_virt_info.stdout and 
+               "SYSTEMD_DETECT:none" not in additional_virt_info.stdout)
+            )) or
+            (sudo_dmidecode_info.stdout is defined and (
+              ("SUDO_MANUFACTURER:" in sudo_dmidecode_info.stdout and
+               ("VMware" in sudo_dmidecode_info.stdout or
+                "QEMU" in sudo_dmidecode_info.stdout or
+                "Microsoft Corporation" in sudo_dmidecode_info.stdout or
+                "Oracle Corporation" in sudo_dmidecode_info.stdout)) or
+              ("SUDO_PRODUCT:" in sudo_dmidecode_info.stdout and
+               ("VMware" in sudo_dmidecode_info.stdout or
+                "VirtualBox" in sudo_dmidecode_info.stdout or
+                "KVM" in sudo_dmidecode_info.stdout))
+            ))
+          }}
+
+    - name: Display server classification
+      debug:
+        msg: 
+          - "{{ inventory_hostname }} is {{ 'VIRTUAL' if is_virtual else 'PHYSICAL' }}"
+          - "Detection confidence: {{ 'HIGH' if (ansible_virtualization_type is defined and ansible_virtualization_type not in ['NA', 'none', '']) else 'MEDIUM' }}"
+
+    - name: Initialize physical servers file with header (run once)
+      local_action:
+        module: copy
+        content: |
+          # Physical Servers List (Oracle Linux & RHEL) - Ansible User
+          # Generated on: {{ ansible_date_time.iso8601 }}
+          # Format: hostname | OS version | vendor product | confidence
+          # ================================================================
+        dest: "{{ physical_servers_file }}"
+        force: no
+      run_once: yes
+      delegate_to: localhost
+
+    - name: Initialize virtual servers file with header (run once)
+      local_action:
+        module: copy
+        content: |
+          # Virtual Servers List (Oracle Linux & RHEL) - Ansible User
+          # Generated on: {{ ansible_date_time.iso8601 }}
+          # Format: hostname | OS version | virtualization type | vendor | confidence
+          # ================================================================
+        dest: "{{ virtual_servers_file }}"
+        force: no
+      run_once: yes
+      delegate_to: localhost
+
+    - name: Add server details to physical servers list
+      local_action:
+        module: lineinfile
+        path: "{{ physical_servers_file }}"
+        line: "{{ inventory_hostname }} | {{ ansible_distribution }} {{ ansible_distribution_version }} | {{ ansible_system_vendor | default('Unknown') }} {{ ansible_product_name | default('Unknown') }} | {{ 'HIGH' if (ansible_virtualization_type is defined and ansible_virtualization_type in ['NA', 'none', '']) else 'MEDIUM' }}"
+        create: yes
+      when: not is_virtual
+      run_once_per_host: yes
+
+    - name: Add server details to virtual servers list  
+      local_action:
+        module: lineinfile
+        path: "{{ virtual_servers_file }}"
+        line: "{{ inventory_hostname }} | {{ ansible_distribution }} {{ ansible_distribution_version }} | {{ ansible_virtualization_type | default('detected') }} | {{ ansible_system_vendor | default('Unknown') }} | {{ 'HIGH' if (ansible_virtualization_type is defined and ansible_virtualization_type not in ['NA', 'none', '']) else 'MEDIUM' }}"
+        create: yes
+      when: is_virtual
+      run_once_per_host: yes
+
+  post_tasks:
+    - name: Display summary
+      debug:
+        msg:
+          - "Playbook execution completed!"
+          - "Physical servers list: {{ physical_servers_file }}"
+          - "Virtual servers list: {{ virtual_servers_file }}"
+          - "Note: Some detection methods may require sudo access for higher accuracy"
+      run_once: yes
+      delegate_to: localhost
+
+    - name: Show physical servers count
+      local_action:
+        module: shell
+        cmd: "wc -l {{ physical_servers_file }} | awk '{print $1}'"
+      register: physical_count
+      run_once: yes
+      delegate_to: localhost
+      ignore_errors: yes
+
+    - name: Show virtual servers count  
+      local_action:
+        module: shell
+        cmd: "wc -l {{ virtual_servers_file }} | awk '{print $1}'"
+      register: virtual_count
+      run_once: yes
+      delegate_to: localhost
+      ignore_errors: yes
+
+    - name: Display final summary
+      debug:
+        msg:
+          - "Total physical servers found: {{ (physical_count.stdout | int) - 4 if physical_count.stdout is defined else 0 }}"
+          - "Total virtual servers found: {{ (virtual_count.stdout | int) - 4 if virtual_count.stdout is defined else 0 }}"
+          - "Detection methods used: Ansible facts, systemd-detect-virt, /proc checks, container detection"
+          - "For enhanced detection, consider configuring passwordless sudo for 'dmidecode'"
+      run_once: yes
+      delegate_to: localhost

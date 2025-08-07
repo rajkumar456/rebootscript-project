@@ -1,0 +1,12 @@
+ERROR! 'run_once_per_host' is not a valid attribute for a Task
+
+The error appears to have been in '/home/rdeva/serverdetection.yml': line 181, column 7, but may
+be elsewhere in the file depending on the exact syntax problem.
+
+The offending line appears to be:
+
+
+    - name: Add server details to physical servers list
+      ^ here
+
+This error can be suppressed as a warning using the "invalid_task_attribute_failed" configuration

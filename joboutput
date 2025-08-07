@@ -1,0 +1,786 @@
+Identity added: /runner/artifacts/38219/ssh_key_data (awx@oi1lam01.oci.betanxt.com)
+[WARNING]: Invalid characters were found in group names but not replaced, use
+-vvvv to see details
+
+PLAY [Set values for all hosts] ************************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [localhost]
+ok: [op1d-cbr-bqa-mw01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mp01.oci.betanxt.com]
+ok: [op2d-cbr-bqa-bat01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com]
+
+TASK [Build authorized keys] ***************************************************
+
+TASK [common : Find files] *****************************************************
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com -> localhost]
+ok: [op1d-cbr-bqa-mw01.oci.betanxt.com -> localhost]
+ok: [localhost]
+ok: [op2d-cbr-bqa-bat01.oci.betanxt.com -> localhost]
+ok: [op1d-cbr-bqa-mp01.oci.betanxt.com -> localhost]
+
+TASK [common : set_fact] *******************************************************
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mw01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mp01.oci.betanxt.com]
+ok: [op2d-cbr-bqa-bat01.oci.betanxt.com]
+ok: [localhost]
+
+TASK [common : Set authorized key list for non-CBR-applications] ***************
+ok: [localhost]
+
+TASK [common : Set authorized key list for nonprod environments] ***************
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mw01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mp01.oci.betanxt.com]
+ok: [op2d-cbr-bqa-bat01.oci.betanxt.com]
+
+TASK [common : Set authorized key list for prod environments] ******************
+ok: [localhost]
+
+TASK [common : Build ssh_authorization_key_files from the map] *****************
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mw01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mp01.oci.betanxt.com]
+ok: [op2d-cbr-bqa-bat01.oci.betanxt.com]
+ok: [localhost]
+
+TASK [common : Display file contents] ******************************************
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com -> localhost] => (item=ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCkxb4m+TfQUI6ZxCPPC6uv2SrJKd87vVzHlsl3xUv1E0wkgdc+A5uQKZZpgGLOT1EveKlBfz7b9wFbzfSeUUtiD3Og1QJ6lVFWvtqS0ikH4oEh0XrKnQAP3QTtiDWCqyVAr+iqy6IDgO5bb6QiKKGDp3bvj35nffnl5gTHNU2STumFLyqYcJwL6SjN/mj78oc7rck8ZSwFZv6Y7dZxxv/nf63LCSjXbCiAXwjpsUyideHuW2JaOV3DSKhcbKrEu3C9GljY7ihyVQu2E/TtUxuuDnCYPUcDyVG8SveWzP1XW4J5hIJ6PXsOcmDSyG/E5eGojlOLCtupO3pgixWbNtMbL7VNY3PurIXVtY2T6408A1qHAm2pxZv71aZQzvJ7ikwokI/FPcFLjwgwOno8+qw7ebB8+iQGOQxKLBd9hVaGvuaNYW1FY0pDL9RSkUacrfN5vO4iG4cL7eV0Gcja/KARk8COSFjv0SsvcqVzn/Jt8LIu/a4ODr96OWlMEEoGuS8= buildmaxit@sciv4-mx-build03.prod.local) => {
+    "ansible_loop_var": "item",
+    "item": "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCkxb4m+TfQUI6ZxCPPC6uv2SrJKd87vVzHlsl3xUv1E0wkgdc+A5uQKZZpgGLOT1EveKlBfz7b9wFbzfSeUUtiD3Og1QJ6lVFWvtqS0ikH4oEh0XrKnQAP3QTtiDWCqyVAr+iqy6IDgO5bb6QiKKGDp3bvj35nffnl5gTHNU2STumFLyqYcJwL6SjN/mj78oc7rck8ZSwFZv6Y7dZxxv/nf63LCSjXbCiAXwjpsUyideHuW2JaOV3DSKhcbKrEu3C9GljY7ihyVQu2E/TtUxuuDnCYPUcDyVG8SveWzP1XW4J5hIJ6PXsOcmDSyG/E5eGojlOLCtupO3pgixWbNtMbL7VNY3PurIXVtY2T6408A1qHAm2pxZv71aZQzvJ7ikwokI/FPcFLjwgwOno8+qw7ebB8+iQGOQxKLBd9hVaGvuaNYW1FY0pDL9RSkUacrfN5vO4iG4cL7eV0Gcja/KARk8COSFjv0SsvcqVzn/Jt8LIu/a4ODr96OWlMEEoGuS8= buildmaxit@sciv4-mx-build03.prod.local"
+}
+ok: [op1d-cbr-bqa-mw01.oci.betanxt.com -> localhost] => (item=ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCkxb4m+TfQUI6ZxCPPC6uv2SrJKd87vVzHlsl3xUv1E0wkgdc+A5uQKZZpgGLOT1EveKlBfz7b9wFbzfSeUUtiD3Og1QJ6lVFWvtqS0ikH4oEh0XrKnQAP3QTtiDWCqyVAr+iqy6IDgO5bb6QiKKGDp3bvj35nffnl5gTHNU2STumFLyqYcJwL6SjN/mj78oc7rck8ZSwFZv6Y7dZxxv/nf63LCSjXbCiAXwjpsUyideHuW2JaOV3DSKhcbKrEu3C9GljY7ihyVQu2E/TtUxuuDnCYPUcDyVG8SveWzP1XW4J5hIJ6PXsOcmDSyG/E5eGojlOLCtupO3pgixWbNtMbL7VNY3PurIXVtY2T6408A1qHAm2pxZv71aZQzvJ7ikwokI/FPcFLjwgwOno8+qw7ebB8+iQGOQxKLBd9hVaGvuaNYW1FY0pDL9RSkUacrfN5vO4iG4cL7eV0Gcja/KARk8COSFjv0SsvcqVzn/Jt8LIu/a4ODr96OWlMEEoGuS8= buildmaxit@sciv4-mx-build03.prod.local) => {
+    "ansible_loop_var": "item",
+    "item": "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCkxb4m+TfQUI6ZxCPPC6uv2SrJKd87vVzHlsl3xUv1E0wkgdc+A5uQKZZpgGLOT1EveKlBfz7b9wFbzfSeUUtiD3Og1QJ6lVFWvtqS0ikH4oEh0XrKnQAP3QTtiDWCqyVAr+iqy6IDgO5bb6QiKKGDp3bvj35nffnl5gTHNU2STumFLyqYcJwL6SjN/mj78oc7rck8ZSwFZv6Y7dZxxv/nf63LCSjXbCiAXwjpsUyideHuW2JaOV3DSKhcbKrEu3C9GljY7ihyVQu2E/TtUxuuDnCYPUcDyVG8SveWzP1XW4J5hIJ6PXsOcmDSyG/E5eGojlOLCtupO3pgixWbNtMbL7VNY3PurIXVtY2T6408A1qHAm2pxZv71aZQzvJ7ikwokI/FPcFLjwgwOno8+qw7ebB8+iQGOQxKLBd9hVaGvuaNYW1FY0pDL9RSkUacrfN5vO4iG4cL7eV0Gcja/KARk8COSFjv0SsvcqVzn/Jt8LIu/a4ODr96OWlMEEoGuS8= buildmaxit@sciv4-mx-build03.prod.local"
+}
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com -> localhost] => (item=ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDdl8pLduoeUH1QcIjSsiLKjcTQZqxO9UiJKTBBONOTBdfcGS42DI0LQ1Uow/CkwhVj29cOA4jakGp9+Gs9R+hkcYdS7S9cVRUjbug4umVe5qn98cPW3XrWqMA2Jym2iZa046+7vj5BFhDqte8h69SsOLE1RY+7jXRGO0lVn3We717++HEj5rDtmZMD4Qc18tcKeFSY/ADWZMMiBa596jZ4W5wIDvTFEeSqY89zdyizuFJcx6EfdBKMSgdoZ3qq36DZ6RxKa5LaVqmZjMbUd6UV9Zg3rll/zVjVUe87nP0+X0e2gAR8zakAftPKwdG+oGTL7twtVCbzOFoSlsl2qbRV) => {
+    "ansible_loop_var": "item",
+    "item": "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDdl8pLduoeUH1QcIjSsiLKjcTQZqxO9UiJKTBBONOTBdfcGS42DI0LQ1Uow/CkwhVj29cOA4jakGp9+Gs9R+hkcYdS7S9cVRUjbug4umVe5qn98cPW3XrWqMA2Jym2iZa046+7vj5BFhDqte8h69SsOLE1RY+7jXRGO0lVn3We717++HEj5rDtmZMD4Qc18tcKeFSY/ADWZMMiBa596jZ4W5wIDvTFEeSqY89zdyizuFJcx6EfdBKMSgdoZ3qq36DZ6RxKa5LaVqmZjMbUd6UV9Zg3rll/zVjVUe87nP0+X0e2gAR8zakAftPKwdG+oGTL7twtVCbzOFoSlsl2qbRV"
+}
+ok: [op1d-cbr-bqa-mw01.oci.betanxt.com -> localhost] => (item=ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDdl8pLduoeUH1QcIjSsiLKjcTQZqxO9UiJKTBBONOTBdfcGS42DI0LQ1Uow/CkwhVj29cOA4jakGp9+Gs9R+hkcYdS7S9cVRUjbug4umVe5qn98cPW3XrWqMA2Jym2iZa046+7vj5BFhDqte8h69SsOLE1RY+7jXRGO0lVn3We717++HEj5rDtmZMD4Qc18tcKeFSY/ADWZMMiBa596jZ4W5wIDvTFEeSqY89zdyizuFJcx6EfdBKMSgdoZ3qq36DZ6RxKa5LaVqmZjMbUd6UV9Zg3rll/zVjVUe87nP0+X0e2gAR8zakAftPKwdG+oGTL7twtVCbzOFoSlsl2qbRV) => {
+    "ansible_loop_var": "item",
+    "item": "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDdl8pLduoeUH1QcIjSsiLKjcTQZqxO9UiJKTBBONOTBdfcGS42DI0LQ1Uow/CkwhVj29cOA4jakGp9+Gs9R+hkcYdS7S9cVRUjbug4umVe5qn98cPW3XrWqMA2Jym2iZa046+7vj5BFhDqte8h69SsOLE1RY+7jXRGO0lVn3We717++HEj5rDtmZMD4Qc18tcKeFSY/ADWZMMiBa596jZ4W5wIDvTFEeSqY89zdyizuFJcx6EfdBKMSgdoZ3qq36DZ6RxKa5LaVqmZjMbUd6UV9Zg3rll/zVjVUe87nP0+X0e2gAR8zakAftPKwdG+oGTL7twtVCbzOFoSlsl2qbRV"
+}
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com -> localhost] => (item=ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDA4L6GKBHKjRNTnPoJ6q8mTUgEEj0DPvRHVjU0IDL/mK5dWsOo/MwiS2WY0mbhdSlo2PkwbrZ/kokLQ0gSsl3IMyJmLb6icrT4eQi6YmF5/yBg6LI0iJLuNhqNZCdBy8EFKm1MoMKTGXQCjjibHp9go+ng6dgR8LjSr+ul55coscfMNCf3HJolxabPprpH71H82lFMnXVlS7CWR6D9TVXuM4usAgwWh1cSvMzA+qHDT1HWqJooWEQVWKDdPPyDxSkMrsKS6BZsOxTqNDAtFuykAf4G2e3iqvEkYRDbZGUOlXH/aA8kDFR4aT6RKX5oC6e1z6o2y9Sbe2kE1Bgr+hBaZ0tQHuU5MPIpihRIZJBIyMokHR+ySUvS91xV3lgzWtcg7eeLRN0AtnPXYy+dCPEpqqvKkbdP3yWv9uh/NJAgy8wspYuFO8i6uRpmo4hABCTrRhfGl9jWE2pyyjZUM6BmQ266NVL8nrTx2Hf2JdpsCa2SDD+6gzBBZdAgQFBSJK8= awx@oi1lam01.oci.betanxt.com) => {
+    "ansible_loop_var": "item",
+    "item": "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDA4L6GKBHKjRNTnPoJ6q8mTUgEEj0DPvRHVjU0IDL/mK5dWsOo/MwiS2WY0mbhdSlo2PkwbrZ/kokLQ0gSsl3IMyJmLb6icrT4eQi6YmF5/yBg6LI0iJLuNhqNZCdBy8EFKm1MoMKTGXQCjjibHp9go+ng6dgR8LjSr+ul55coscfMNCf3HJolxabPprpH71H82lFMnXVlS7CWR6D9TVXuM4usAgwWh1cSvMzA+qHDT1HWqJooWEQVWKDdPPyDxSkMrsKS6BZsOxTqNDAtFuykAf4G2e3iqvEkYRDbZGUOlXH/aA8kDFR4aT6RKX5oC6e1z6o2y9Sbe2kE1Bgr+hBaZ0tQHuU5MPIpihRIZJBIyMokHR+ySUvS91xV3lgzWtcg7eeLRN0AtnPXYy+dCPEpqqvKkbdP3yWv9uh/NJAgy8wspYuFO8i6uRpmo4hABCTrRhfGl9jWE2pyyjZUM6BmQ266NVL8nrTx2Hf2JdpsCa2SDD+6gzBBZdAgQFBSJK8= awx@oi1lam01.oci.betanxt.com"
+}
+ok: [op1d-cbr-bqa-mp01.oci.betanxt.com -> localhost] => (item=ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCkxb4m+TfQUI6ZxCPPC6uv2SrJKd87vVzHlsl3xUv1E0wkgdc+A5uQKZZpgGLOT1EveKlBfz7b9wFbzfSeUUtiD3Og1QJ6lVFWvtqS0ikH4oEh0XrKnQAP3QTtiDWCqyVAr+iqy6IDgO5bb6QiKKGDp3bvj35nffnl5gTHNU2STumFLyqYcJwL6SjN/mj78oc7rck8ZSwFZv6Y7dZxxv/nf63LCSjXbCiAXwjpsUyideHuW2JaOV3DSKhcbKrEu3C9GljY7ihyVQu2E/TtUxuuDnCYPUcDyVG8SveWzP1XW4J5hIJ6PXsOcmDSyG/E5eGojlOLCtupO3pgixWbNtMbL7VNY3PurIXVtY2T6408A1qHAm2pxZv71aZQzvJ7ikwokI/FPcFLjwgwOno8+qw7ebB8+iQGOQxKLBd9hVaGvuaNYW1FY0pDL9RSkUacrfN5vO4iG4cL7eV0Gcja/KARk8COSFjv0SsvcqVzn/Jt8LIu/a4ODr96OWlMEEoGuS8= buildmaxit@sciv4-mx-build03.prod.local) => {
+    "ansible_loop_var": "item",
+    "item": "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCkxb4m+TfQUI6ZxCPPC6uv2SrJKd87vVzHlsl3xUv1E0wkgdc+A5uQKZZpgGLOT1EveKlBfz7b9wFbzfSeUUtiD3Og1QJ6lVFWvtqS0ikH4oEh0XrKnQAP3QTtiDWCqyVAr+iqy6IDgO5bb6QiKKGDp3bvj35nffnl5gTHNU2STumFLyqYcJwL6SjN/mj78oc7rck8ZSwFZv6Y7dZxxv/nf63LCSjXbCiAXwjpsUyideHuW2JaOV3DSKhcbKrEu3C9GljY7ihyVQu2E/TtUxuuDnCYPUcDyVG8SveWzP1XW4J5hIJ6PXsOcmDSyG/E5eGojlOLCtupO3pgixWbNtMbL7VNY3PurIXVtY2T6408A1qHAm2pxZv71aZQzvJ7ikwokI/FPcFLjwgwOno8+qw7ebB8+iQGOQxKLBd9hVaGvuaNYW1FY0pDL9RSkUacrfN5vO4iG4cL7eV0Gcja/KARk8COSFjv0SsvcqVzn/Jt8LIu/a4ODr96OWlMEEoGuS8= buildmaxit@sciv4-mx-build03.prod.local"
+}
+ok: [op1d-cbr-bqa-mw01.oci.betanxt.com -> localhost] => (item=ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDA4L6GKBHKjRNTnPoJ6q8mTUgEEj0DPvRHVjU0IDL/mK5dWsOo/MwiS2WY0mbhdSlo2PkwbrZ/kokLQ0gSsl3IMyJmLb6icrT4eQi6YmF5/yBg6LI0iJLuNhqNZCdBy8EFKm1MoMKTGXQCjjibHp9go+ng6dgR8LjSr+ul55coscfMNCf3HJolxabPprpH71H82lFMnXVlS7CWR6D9TVXuM4usAgwWh1cSvMzA+qHDT1HWqJooWEQVWKDdPPyDxSkMrsKS6BZsOxTqNDAtFuykAf4G2e3iqvEkYRDbZGUOlXH/aA8kDFR4aT6RKX5oC6e1z6o2y9Sbe2kE1Bgr+hBaZ0tQHuU5MPIpihRIZJBIyMokHR+ySUvS91xV3lgzWtcg7eeLRN0AtnPXYy+dCPEpqqvKkbdP3yWv9uh/NJAgy8wspYuFO8i6uRpmo4hABCTrRhfGl9jWE2pyyjZUM6BmQ266NVL8nrTx2Hf2JdpsCa2SDD+6gzBBZdAgQFBSJK8= awx@oi1lam01.oci.betanxt.com) => {
+    "ansible_loop_var": "item",
+    "item": "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDA4L6GKBHKjRNTnPoJ6q8mTUgEEj0DPvRHVjU0IDL/mK5dWsOo/MwiS2WY0mbhdSlo2PkwbrZ/kokLQ0gSsl3IMyJmLb6icrT4eQi6YmF5/yBg6LI0iJLuNhqNZCdBy8EFKm1MoMKTGXQCjjibHp9go+ng6dgR8LjSr+ul55coscfMNCf3HJolxabPprpH71H82lFMnXVlS7CWR6D9TVXuM4usAgwWh1cSvMzA+qHDT1HWqJooWEQVWKDdPPyDxSkMrsKS6BZsOxTqNDAtFuykAf4G2e3iqvEkYRDbZGUOlXH/aA8kDFR4aT6RKX5oC6e1z6o2y9Sbe2kE1Bgr+hBaZ0tQHuU5MPIpihRIZJBIyMokHR+ySUvS91xV3lgzWtcg7eeLRN0AtnPXYy+dCPEpqqvKkbdP3yWv9uh/NJAgy8wspYuFO8i6uRpmo4hABCTrRhfGl9jWE2pyyjZUM6BmQ266NVL8nrTx2Hf2JdpsCa2SDD+6gzBBZdAgQFBSJK8= awx@oi1lam01.oci.betanxt.com"
+}
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com -> localhost] => (item=ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDC2db7V7OdbPZnOKzJOB1y1lNCMKvCrxu1XppOIzNqfy23Jxb9Gd8qGG9quJuTHOlDpP8fo30QiKGTsdor1IzgCkwYPb2S7tdD+vAg05fRtC+y9WWpYLG8NNoroUIykKTgIByh0yjRa6+9B3kRa7jAt3eMr05WH2WdMD0kyrXmVbukDKkrQ8vh/VFz31yj7aJW/x56LsP5UowZNqW6SKOvUj52UsAi+ZQVyRp6Eprm8Cd91aXC1/3oXLt8VyA8Q5LYKj1D9B2lB2sXI+eo6LZaKigYP5V7fymKZJNMkYOddzY8MaRayGG/CGK8KWVLF4FIlDWjHbHHtLRVaeW4s/JZ ansible@oi1p-cbr-shrd-smrt01.oci.betanxt.com) => {
+    "ansible_loop_var": "item",
+    "item": "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDC2db7V7OdbPZnOKzJOB1y1lNCMKvCrxu1XppOIzNqfy23Jxb9Gd8qGG9quJuTHOlDpP8fo30QiKGTsdor1IzgCkwYPb2S7tdD+vAg05fRtC+y9WWpYLG8NNoroUIykKTgIByh0yjRa6+9B3kRa7jAt3eMr05WH2WdMD0kyrXmVbukDKkrQ8vh/VFz31yj7aJW/x56LsP5UowZNqW6SKOvUj52UsAi+ZQVyRp6Eprm8Cd91aXC1/3oXLt8VyA8Q5LYKj1D9B2lB2sXI+eo6LZaKigYP5V7fymKZJNMkYOddzY8MaRayGG/CGK8KWVLF4FIlDWjHbHHtLRVaeW4s/JZ ansible@oi1p-cbr-shrd-smrt01.oci.betanxt.com"
+}
+ok: [op1d-cbr-bqa-mp01.oci.betanxt.com -> localhost] => (item=ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDdl8pLduoeUH1QcIjSsiLKjcTQZqxO9UiJKTBBONOTBdfcGS42DI0LQ1Uow/CkwhVj29cOA4jakGp9+Gs9R+hkcYdS7S9cVRUjbug4umVe5qn98cPW3XrWqMA2Jym2iZa046+7vj5BFhDqte8h69SsOLE1RY+7jXRGO0lVn3We717++HEj5rDtmZMD4Qc18tcKeFSY/ADWZMMiBa596jZ4W5wIDvTFEeSqY89zdyizuFJcx6EfdBKMSgdoZ3qq36DZ6RxKa5LaVqmZjMbUd6UV9Zg3rll/zVjVUe87nP0+X0e2gAR8zakAftPKwdG+oGTL7twtVCbzOFoSlsl2qbRV) => {
+    "ansible_loop_var": "item",
+    "item": "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDdl8pLduoeUH1QcIjSsiLKjcTQZqxO9UiJKTBBONOTBdfcGS42DI0LQ1Uow/CkwhVj29cOA4jakGp9+Gs9R+hkcYdS7S9cVRUjbug4umVe5qn98cPW3XrWqMA2Jym2iZa046+7vj5BFhDqte8h69SsOLE1RY+7jXRGO0lVn3We717++HEj5rDtmZMD4Qc18tcKeFSY/ADWZMMiBa596jZ4W5wIDvTFEeSqY89zdyizuFJcx6EfdBKMSgdoZ3qq36DZ6RxKa5LaVqmZjMbUd6UV9Zg3rll/zVjVUe87nP0+X0e2gAR8zakAftPKwdG+oGTL7twtVCbzOFoSlsl2qbRV"
+}
+ok: [op1d-cbr-bqa-mw01.oci.betanxt.com -> localhost] => (item=ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDC2db7V7OdbPZnOKzJOB1y1lNCMKvCrxu1XppOIzNqfy23Jxb9Gd8qGG9quJuTHOlDpP8fo30QiKGTsdor1IzgCkwYPb2S7tdD+vAg05fRtC+y9WWpYLG8NNoroUIykKTgIByh0yjRa6+9B3kRa7jAt3eMr05WH2WdMD0kyrXmVbukDKkrQ8vh/VFz31yj7aJW/x56LsP5UowZNqW6SKOvUj52UsAi+ZQVyRp6Eprm8Cd91aXC1/3oXLt8VyA8Q5LYKj1D9B2lB2sXI+eo6LZaKigYP5V7fymKZJNMkYOddzY8MaRayGG/CGK8KWVLF4FIlDWjHbHHtLRVaeW4s/JZ ansible@oi1p-cbr-shrd-smrt01.oci.betanxt.com) => {
+    "ansible_loop_var": "item",
+    "item": "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDC2db7V7OdbPZnOKzJOB1y1lNCMKvCrxu1XppOIzNqfy23Jxb9Gd8qGG9quJuTHOlDpP8fo30QiKGTsdor1IzgCkwYPb2S7tdD+vAg05fRtC+y9WWpYLG8NNoroUIykKTgIByh0yjRa6+9B3kRa7jAt3eMr05WH2WdMD0kyrXmVbukDKkrQ8vh/VFz31yj7aJW/x56LsP5UowZNqW6SKOvUj52UsAi+ZQVyRp6Eprm8Cd91aXC1/3oXLt8VyA8Q5LYKj1D9B2lB2sXI+eo6LZaKigYP5V7fymKZJNMkYOddzY8MaRayGG/CGK8KWVLF4FIlDWjHbHHtLRVaeW4s/JZ ansible@oi1p-cbr-shrd-smrt01.oci.betanxt.com"
+}
+ok: [op1d-cbr-bqa-mp01.oci.betanxt.com -> localhost] => (item=ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDA4L6GKBHKjRNTnPoJ6q8mTUgEEj0DPvRHVjU0IDL/mK5dWsOo/MwiS2WY0mbhdSlo2PkwbrZ/kokLQ0gSsl3IMyJmLb6icrT4eQi6YmF5/yBg6LI0iJLuNhqNZCdBy8EFKm1MoMKTGXQCjjibHp9go+ng6dgR8LjSr+ul55coscfMNCf3HJolxabPprpH71H82lFMnXVlS7CWR6D9TVXuM4usAgwWh1cSvMzA+qHDT1HWqJooWEQVWKDdPPyDxSkMrsKS6BZsOxTqNDAtFuykAf4G2e3iqvEkYRDbZGUOlXH/aA8kDFR4aT6RKX5oC6e1z6o2y9Sbe2kE1Bgr+hBaZ0tQHuU5MPIpihRIZJBIyMokHR+ySUvS91xV3lgzWtcg7eeLRN0AtnPXYy+dCPEpqqvKkbdP3yWv9uh/NJAgy8wspYuFO8i6uRpmo4hABCTrRhfGl9jWE2pyyjZUM6BmQ266NVL8nrTx2Hf2JdpsCa2SDD+6gzBBZdAgQFBSJK8= awx@oi1lam01.oci.betanxt.com) => {
+    "ansible_loop_var": "item",
+    "item": "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDA4L6GKBHKjRNTnPoJ6q8mTUgEEj0DPvRHVjU0IDL/mK5dWsOo/MwiS2WY0mbhdSlo2PkwbrZ/kokLQ0gSsl3IMyJmLb6icrT4eQi6YmF5/yBg6LI0iJLuNhqNZCdBy8EFKm1MoMKTGXQCjjibHp9go+ng6dgR8LjSr+ul55coscfMNCf3HJolxabPprpH71H82lFMnXVlS7CWR6D9TVXuM4usAgwWh1cSvMzA+qHDT1HWqJooWEQVWKDdPPyDxSkMrsKS6BZsOxTqNDAtFuykAf4G2e3iqvEkYRDbZGUOlXH/aA8kDFR4aT6RKX5oC6e1z6o2y9Sbe2kE1Bgr+hBaZ0tQHuU5MPIpihRIZJBIyMokHR+ySUvS91xV3lgzWtcg7eeLRN0AtnPXYy+dCPEpqqvKkbdP3yWv9uh/NJAgy8wspYuFO8i6uRpmo4hABCTrRhfGl9jWE2pyyjZUM6BmQ266NVL8nrTx2Hf2JdpsCa2SDD+6gzBBZdAgQFBSJK8= awx@oi1lam01.oci.betanxt.com"
+}
+ok: [op2d-cbr-bqa-bat01.oci.betanxt.com -> localhost] => (item=ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCkxb4m+TfQUI6ZxCPPC6uv2SrJKd87vVzHlsl3xUv1E0wkgdc+A5uQKZZpgGLOT1EveKlBfz7b9wFbzfSeUUtiD3Og1QJ6lVFWvtqS0ikH4oEh0XrKnQAP3QTtiDWCqyVAr+iqy6IDgO5bb6QiKKGDp3bvj35nffnl5gTHNU2STumFLyqYcJwL6SjN/mj78oc7rck8ZSwFZv6Y7dZxxv/nf63LCSjXbCiAXwjpsUyideHuW2JaOV3DSKhcbKrEu3C9GljY7ihyVQu2E/TtUxuuDnCYPUcDyVG8SveWzP1XW4J5hIJ6PXsOcmDSyG/E5eGojlOLCtupO3pgixWbNtMbL7VNY3PurIXVtY2T6408A1qHAm2pxZv71aZQzvJ7ikwokI/FPcFLjwgwOno8+qw7ebB8+iQGOQxKLBd9hVaGvuaNYW1FY0pDL9RSkUacrfN5vO4iG4cL7eV0Gcja/KARk8COSFjv0SsvcqVzn/Jt8LIu/a4ODr96OWlMEEoGuS8= buildmaxit@sciv4-mx-build03.prod.local) => {
+    "ansible_loop_var": "item",
+    "item": "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCkxb4m+TfQUI6ZxCPPC6uv2SrJKd87vVzHlsl3xUv1E0wkgdc+A5uQKZZpgGLOT1EveKlBfz7b9wFbzfSeUUtiD3Og1QJ6lVFWvtqS0ikH4oEh0XrKnQAP3QTtiDWCqyVAr+iqy6IDgO5bb6QiKKGDp3bvj35nffnl5gTHNU2STumFLyqYcJwL6SjN/mj78oc7rck8ZSwFZv6Y7dZxxv/nf63LCSjXbCiAXwjpsUyideHuW2JaOV3DSKhcbKrEu3C9GljY7ihyVQu2E/TtUxuuDnCYPUcDyVG8SveWzP1XW4J5hIJ6PXsOcmDSyG/E5eGojlOLCtupO3pgixWbNtMbL7VNY3PurIXVtY2T6408A1qHAm2pxZv71aZQzvJ7ikwokI/FPcFLjwgwOno8+qw7ebB8+iQGOQxKLBd9hVaGvuaNYW1FY0pDL9RSkUacrfN5vO4iG4cL7eV0Gcja/KARk8COSFjv0SsvcqVzn/Jt8LIu/a4ODr96OWlMEEoGuS8= buildmaxit@sciv4-mx-build03.prod.local"
+}
+ok: [op1d-cbr-bqa-mp01.oci.betanxt.com -> localhost] => (item=ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDC2db7V7OdbPZnOKzJOB1y1lNCMKvCrxu1XppOIzNqfy23Jxb9Gd8qGG9quJuTHOlDpP8fo30QiKGTsdor1IzgCkwYPb2S7tdD+vAg05fRtC+y9WWpYLG8NNoroUIykKTgIByh0yjRa6+9B3kRa7jAt3eMr05WH2WdMD0kyrXmVbukDKkrQ8vh/VFz31yj7aJW/x56LsP5UowZNqW6SKOvUj52UsAi+ZQVyRp6Eprm8Cd91aXC1/3oXLt8VyA8Q5LYKj1D9B2lB2sXI+eo6LZaKigYP5V7fymKZJNMkYOddzY8MaRayGG/CGK8KWVLF4FIlDWjHbHHtLRVaeW4s/JZ ansible@oi1p-cbr-shrd-smrt01.oci.betanxt.com) => {
+    "ansible_loop_var": "item",
+    "item": "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDC2db7V7OdbPZnOKzJOB1y1lNCMKvCrxu1XppOIzNqfy23Jxb9Gd8qGG9quJuTHOlDpP8fo30QiKGTsdor1IzgCkwYPb2S7tdD+vAg05fRtC+y9WWpYLG8NNoroUIykKTgIByh0yjRa6+9B3kRa7jAt3eMr05WH2WdMD0kyrXmVbukDKkrQ8vh/VFz31yj7aJW/x56LsP5UowZNqW6SKOvUj52UsAi+ZQVyRp6Eprm8Cd91aXC1/3oXLt8VyA8Q5LYKj1D9B2lB2sXI+eo6LZaKigYP5V7fymKZJNMkYOddzY8MaRayGG/CGK8KWVLF4FIlDWjHbHHtLRVaeW4s/JZ ansible@oi1p-cbr-shrd-smrt01.oci.betanxt.com"
+}
+ok: [op2d-cbr-bqa-bat01.oci.betanxt.com -> localhost] => (item=ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDdl8pLduoeUH1QcIjSsiLKjcTQZqxO9UiJKTBBONOTBdfcGS42DI0LQ1Uow/CkwhVj29cOA4jakGp9+Gs9R+hkcYdS7S9cVRUjbug4umVe5qn98cPW3XrWqMA2Jym2iZa046+7vj5BFhDqte8h69SsOLE1RY+7jXRGO0lVn3We717++HEj5rDtmZMD4Qc18tcKeFSY/ADWZMMiBa596jZ4W5wIDvTFEeSqY89zdyizuFJcx6EfdBKMSgdoZ3qq36DZ6RxKa5LaVqmZjMbUd6UV9Zg3rll/zVjVUe87nP0+X0e2gAR8zakAftPKwdG+oGTL7twtVCbzOFoSlsl2qbRV) => {
+    "ansible_loop_var": "item",
+    "item": "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDdl8pLduoeUH1QcIjSsiLKjcTQZqxO9UiJKTBBONOTBdfcGS42DI0LQ1Uow/CkwhVj29cOA4jakGp9+Gs9R+hkcYdS7S9cVRUjbug4umVe5qn98cPW3XrWqMA2Jym2iZa046+7vj5BFhDqte8h69SsOLE1RY+7jXRGO0lVn3We717++HEj5rDtmZMD4Qc18tcKeFSY/ADWZMMiBa596jZ4W5wIDvTFEeSqY89zdyizuFJcx6EfdBKMSgdoZ3qq36DZ6RxKa5LaVqmZjMbUd6UV9Zg3rll/zVjVUe87nP0+X0e2gAR8zakAftPKwdG+oGTL7twtVCbzOFoSlsl2qbRV"
+}
+ok: [op2d-cbr-bqa-bat01.oci.betanxt.com -> localhost] => (item=ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDA4L6GKBHKjRNTnPoJ6q8mTUgEEj0DPvRHVjU0IDL/mK5dWsOo/MwiS2WY0mbhdSlo2PkwbrZ/kokLQ0gSsl3IMyJmLb6icrT4eQi6YmF5/yBg6LI0iJLuNhqNZCdBy8EFKm1MoMKTGXQCjjibHp9go+ng6dgR8LjSr+ul55coscfMNCf3HJolxabPprpH71H82lFMnXVlS7CWR6D9TVXuM4usAgwWh1cSvMzA+qHDT1HWqJooWEQVWKDdPPyDxSkMrsKS6BZsOxTqNDAtFuykAf4G2e3iqvEkYRDbZGUOlXH/aA8kDFR4aT6RKX5oC6e1z6o2y9Sbe2kE1Bgr+hBaZ0tQHuU5MPIpihRIZJBIyMokHR+ySUvS91xV3lgzWtcg7eeLRN0AtnPXYy+dCPEpqqvKkbdP3yWv9uh/NJAgy8wspYuFO8i6uRpmo4hABCTrRhfGl9jWE2pyyjZUM6BmQ266NVL8nrTx2Hf2JdpsCa2SDD+6gzBBZdAgQFBSJK8= awx@oi1lam01.oci.betanxt.com) => {
+    "ansible_loop_var": "item",
+    "item": "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDA4L6GKBHKjRNTnPoJ6q8mTUgEEj0DPvRHVjU0IDL/mK5dWsOo/MwiS2WY0mbhdSlo2PkwbrZ/kokLQ0gSsl3IMyJmLb6icrT4eQi6YmF5/yBg6LI0iJLuNhqNZCdBy8EFKm1MoMKTGXQCjjibHp9go+ng6dgR8LjSr+ul55coscfMNCf3HJolxabPprpH71H82lFMnXVlS7CWR6D9TVXuM4usAgwWh1cSvMzA+qHDT1HWqJooWEQVWKDdPPyDxSkMrsKS6BZsOxTqNDAtFuykAf4G2e3iqvEkYRDbZGUOlXH/aA8kDFR4aT6RKX5oC6e1z6o2y9Sbe2kE1Bgr+hBaZ0tQHuU5MPIpihRIZJBIyMokHR+ySUvS91xV3lgzWtcg7eeLRN0AtnPXYy+dCPEpqqvKkbdP3yWv9uh/NJAgy8wspYuFO8i6uRpmo4hABCTrRhfGl9jWE2pyyjZUM6BmQ266NVL8nrTx2Hf2JdpsCa2SDD+6gzBBZdAgQFBSJK8= awx@oi1lam01.oci.betanxt.com"
+}
+ok: [localhost] => (item=ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDdl8pLduoeUH1QcIjSsiLKjcTQZqxO9UiJKTBBONOTBdfcGS42DI0LQ1Uow/CkwhVj29cOA4jakGp9+Gs9R+hkcYdS7S9cVRUjbug4umVe5qn98cPW3XrWqMA2Jym2iZa046+7vj5BFhDqte8h69SsOLE1RY+7jXRGO0lVn3We717++HEj5rDtmZMD4Qc18tcKeFSY/ADWZMMiBa596jZ4W5wIDvTFEeSqY89zdyizuFJcx6EfdBKMSgdoZ3qq36DZ6RxKa5LaVqmZjMbUd6UV9Zg3rll/zVjVUe87nP0+X0e2gAR8zakAftPKwdG+oGTL7twtVCbzOFoSlsl2qbRV) => {
+    "ansible_loop_var": "item",
+    "item": "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDdl8pLduoeUH1QcIjSsiLKjcTQZqxO9UiJKTBBONOTBdfcGS42DI0LQ1Uow/CkwhVj29cOA4jakGp9+Gs9R+hkcYdS7S9cVRUjbug4umVe5qn98cPW3XrWqMA2Jym2iZa046+7vj5BFhDqte8h69SsOLE1RY+7jXRGO0lVn3We717++HEj5rDtmZMD4Qc18tcKeFSY/ADWZMMiBa596jZ4W5wIDvTFEeSqY89zdyizuFJcx6EfdBKMSgdoZ3qq36DZ6RxKa5LaVqmZjMbUd6UV9Zg3rll/zVjVUe87nP0+X0e2gAR8zakAftPKwdG+oGTL7twtVCbzOFoSlsl2qbRV"
+}
+ok: [op2d-cbr-bqa-bat01.oci.betanxt.com -> localhost] => (item=ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDC2db7V7OdbPZnOKzJOB1y1lNCMKvCrxu1XppOIzNqfy23Jxb9Gd8qGG9quJuTHOlDpP8fo30QiKGTsdor1IzgCkwYPb2S7tdD+vAg05fRtC+y9WWpYLG8NNoroUIykKTgIByh0yjRa6+9B3kRa7jAt3eMr05WH2WdMD0kyrXmVbukDKkrQ8vh/VFz31yj7aJW/x56LsP5UowZNqW6SKOvUj52UsAi+ZQVyRp6Eprm8Cd91aXC1/3oXLt8VyA8Q5LYKj1D9B2lB2sXI+eo6LZaKigYP5V7fymKZJNMkYOddzY8MaRayGG/CGK8KWVLF4FIlDWjHbHHtLRVaeW4s/JZ ansible@oi1p-cbr-shrd-smrt01.oci.betanxt.com) => {
+    "ansible_loop_var": "item",
+    "item": "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDC2db7V7OdbPZnOKzJOB1y1lNCMKvCrxu1XppOIzNqfy23Jxb9Gd8qGG9quJuTHOlDpP8fo30QiKGTsdor1IzgCkwYPb2S7tdD+vAg05fRtC+y9WWpYLG8NNoroUIykKTgIByh0yjRa6+9B3kRa7jAt3eMr05WH2WdMD0kyrXmVbukDKkrQ8vh/VFz31yj7aJW/x56LsP5UowZNqW6SKOvUj52UsAi+ZQVyRp6Eprm8Cd91aXC1/3oXLt8VyA8Q5LYKj1D9B2lB2sXI+eo6LZaKigYP5V7fymKZJNMkYOddzY8MaRayGG/CGK8KWVLF4FIlDWjHbHHtLRVaeW4s/JZ ansible@oi1p-cbr-shrd-smrt01.oci.betanxt.com"
+}
+ok: [localhost] => (item=ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDA4L6GKBHKjRNTnPoJ6q8mTUgEEj0DPvRHVjU0IDL/mK5dWsOo/MwiS2WY0mbhdSlo2PkwbrZ/kokLQ0gSsl3IMyJmLb6icrT4eQi6YmF5/yBg6LI0iJLuNhqNZCdBy8EFKm1MoMKTGXQCjjibHp9go+ng6dgR8LjSr+ul55coscfMNCf3HJolxabPprpH71H82lFMnXVlS7CWR6D9TVXuM4usAgwWh1cSvMzA+qHDT1HWqJooWEQVWKDdPPyDxSkMrsKS6BZsOxTqNDAtFuykAf4G2e3iqvEkYRDbZGUOlXH/aA8kDFR4aT6RKX5oC6e1z6o2y9Sbe2kE1Bgr+hBaZ0tQHuU5MPIpihRIZJBIyMokHR+ySUvS91xV3lgzWtcg7eeLRN0AtnPXYy+dCPEpqqvKkbdP3yWv9uh/NJAgy8wspYuFO8i6uRpmo4hABCTrRhfGl9jWE2pyyjZUM6BmQ266NVL8nrTx2Hf2JdpsCa2SDD+6gzBBZdAgQFBSJK8= awx@oi1lam01.oci.betanxt.com) => {
+    "ansible_loop_var": "item",
+    "item": "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDA4L6GKBHKjRNTnPoJ6q8mTUgEEj0DPvRHVjU0IDL/mK5dWsOo/MwiS2WY0mbhdSlo2PkwbrZ/kokLQ0gSsl3IMyJmLb6icrT4eQi6YmF5/yBg6LI0iJLuNhqNZCdBy8EFKm1MoMKTGXQCjjibHp9go+ng6dgR8LjSr+ul55coscfMNCf3HJolxabPprpH71H82lFMnXVlS7CWR6D9TVXuM4usAgwWh1cSvMzA+qHDT1HWqJooWEQVWKDdPPyDxSkMrsKS6BZsOxTqNDAtFuykAf4G2e3iqvEkYRDbZGUOlXH/aA8kDFR4aT6RKX5oC6e1z6o2y9Sbe2kE1Bgr+hBaZ0tQHuU5MPIpihRIZJBIyMokHR+ySUvS91xV3lgzWtcg7eeLRN0AtnPXYy+dCPEpqqvKkbdP3yWv9uh/NJAgy8wspYuFO8i6uRpmo4hABCTrRhfGl9jWE2pyyjZUM6BmQ266NVL8nrTx2Hf2JdpsCa2SDD+6gzBBZdAgQFBSJK8= awx@oi1lam01.oci.betanxt.com"
+}
+ok: [localhost] => (item=ssh-dss AAAAB3NzaC1kc3MAAACBAPT1rCiZHjxrtVhCA0LJHRF0qehpyT120Mjw0IinYICqq/CDx85mICm7sUJKA6HK187MeGO78377Hhv170Dq9uUYIBngu6detZLfJ1vSlPRdSmeuVSivQ6O+En3CPN8A168VUqGNsqg1NdLiumB/wVwXzlaqcXvAi9witGQBZQyNAAAAFQDsWTTTqw8YgAN0o/z6LdbRTGXxPwAAAIA/Gk+9kkSpCPTbaW1/aL3mkPXPfZfW5VVPtF8N/jcVYV+aoAR7cowDCbyLaWR8aDUSU9tY5jkxwlQxqoDM8MpgXN7+QjZH3LvGysPHzgND+U5Q/dWqUp1Pn4TlWBI6UuBMiFBZoCwZcWD7AAKDg7OLDr2nRg0TY5aOrloQt/q9BQAAAIAps5HV0qNg4ZdTDyJgX11ZBWVJRB1UFZtUWZNklOAY+nkNv+u8HOUTEbvqYK1blFqK9OGcC5hROK3U5jl3phIn+k+vpgkv70oaR0qI/Z5pQY44PXH4QGD3UIide+W+1oRumj38/5J+m8M5ZgmhU1is+xZhqviQU+Q3F0GNeu10xQ== releasemaxit@manning.scivantage.com) => {
+    "ansible_loop_var": "item",
+    "item": "ssh-dss AAAAB3NzaC1kc3MAAACBAPT1rCiZHjxrtVhCA0LJHRF0qehpyT120Mjw0IinYICqq/CDx85mICm7sUJKA6HK187MeGO78377Hhv170Dq9uUYIBngu6detZLfJ1vSlPRdSmeuVSivQ6O+En3CPN8A168VUqGNsqg1NdLiumB/wVwXzlaqcXvAi9witGQBZQyNAAAAFQDsWTTTqw8YgAN0o/z6LdbRTGXxPwAAAIA/Gk+9kkSpCPTbaW1/aL3mkPXPfZfW5VVPtF8N/jcVYV+aoAR7cowDCbyLaWR8aDUSU9tY5jkxwlQxqoDM8MpgXN7+QjZH3LvGysPHzgND+U5Q/dWqUp1Pn4TlWBI6UuBMiFBZoCwZcWD7AAKDg7OLDr2nRg0TY5aOrloQt/q9BQAAAIAps5HV0qNg4ZdTDyJgX11ZBWVJRB1UFZtUWZNklOAY+nkNv+u8HOUTEbvqYK1blFqK9OGcC5hROK3U5jl3phIn+k+vpgkv70oaR0qI/Z5pQY44PXH4QGD3UIide+W+1oRumj38/5J+m8M5ZgmhU1is+xZhqviQU+Q3F0GNeu10xQ== releasemaxit@manning.scivantage.com"
+}
+ok: [localhost] => (item=ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDcDXEb2EAShpi13r1IMgjrG004SUtUw/TF8plEcvZ2PwnX2O7e0kaPrN4TLJZ2a2ELj44zGu9JuI0QMlvLGvlZKqSMD/cbGf1I80IznpwHNgzfaZtEpjXAUe2yN7zligyTZ5qPq4e3OAvG3daOic8L+9YG5k+sm4xNWRtePLE1/ePNTMpmtVQKuhEyyNatL6EwV30Lvy/POUDXdwrZ39FYYmK2ect/DJsLhhqvne+3voJD67H8gZBbtKzWA5wN+8Ete0VBzOi2HXApoKdUJrqAUs5h/2R1hAfyO67+cnMFaxmf+bc+e5KjLInY8fbwjcDIhcu68YuyB9PHxx8B/O5R releasemaxit@sciv4-mx-build01.prod.local) => {
+    "ansible_loop_var": "item",
+    "item": "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDcDXEb2EAShpi13r1IMgjrG004SUtUw/TF8plEcvZ2PwnX2O7e0kaPrN4TLJZ2a2ELj44zGu9JuI0QMlvLGvlZKqSMD/cbGf1I80IznpwHNgzfaZtEpjXAUe2yN7zligyTZ5qPq4e3OAvG3daOic8L+9YG5k+sm4xNWRtePLE1/ePNTMpmtVQKuhEyyNatL6EwV30Lvy/POUDXdwrZ39FYYmK2ect/DJsLhhqvne+3voJD67H8gZBbtKzWA5wN+8Ete0VBzOi2HXApoKdUJrqAUs5h/2R1hAfyO67+cnMFaxmf+bc+e5KjLInY8fbwjcDIhcu68YuyB9PHxx8B/O5R releasemaxit@sciv4-mx-build01.prod.local"
+}
+
+TASK [common : set_fact] *******************************************************
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mw01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mp01.oci.betanxt.com]
+ok: [op2d-cbr-bqa-bat01.oci.betanxt.com]
+ok: [localhost]
+
+PLAY [Ensure client_code is set] ***********************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [localhost]
+
+TASK [debug] *******************************************************************
+ok: [localhost] => {
+    "msg": "localhost client_code is cen"
+}
+
+PLAY [Set Server Information] **************************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mw01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mp01.oci.betanxt.com]
+ok: [op2d-cbr-bqa-bat01.oci.betanxt.com]
+
+TASK [Get information from groups] *********************************************
+
+TASK [common : Retrieve "client_code" group] ***********************************
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mw01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mp01.oci.betanxt.com]
+ok: [op2d-cbr-bqa-bat01.oci.betanxt.com]
+
+TASK [common : Retrieve client_code value from group] **************************
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mw01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mp01.oci.betanxt.com]
+ok: [op2d-cbr-bqa-bat01.oci.betanxt.com]
+
+TASK [common : Debug vars from groups] *****************************************
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com] => {
+    "debug_info": {
+        "searched_groups": "client_code_bqa",
+        "{{ group_name }}": "bqa"
+    }
+}
+ok: [op1d-cbr-bqa-mw01.oci.betanxt.com] => {
+    "debug_info": {
+        "searched_groups": "client_code_bqa",
+        "{{ group_name }}": "bqa"
+    }
+}
+ok: [op1d-cbr-bqa-mp01.oci.betanxt.com] => {
+    "debug_info": {
+        "searched_groups": "client_code_bqa",
+        "{{ group_name }}": "bqa"
+    }
+}
+ok: [op2d-cbr-bqa-bat01.oci.betanxt.com] => {
+    "debug_info": {
+        "searched_groups": "client_code_bqa",
+        "{{ group_name }}": "bqa"
+    }
+}
+
+TASK [common : Retrieve "compartment_name" group] ******************************
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mw01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mp01.oci.betanxt.com]
+ok: [op2d-cbr-bqa-bat01.oci.betanxt.com]
+
+TASK [common : Retrieve compartment_name value from group] *********************
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mw01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mp01.oci.betanxt.com]
+ok: [op2d-cbr-bqa-bat01.oci.betanxt.com]
+
+TASK [common : Debug vars from groups] *****************************************
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com] => {
+    "debug_info": {
+        "searched_groups": "compartment_name_bqa",
+        "{{ group_name }}": "bqa"
+    }
+}
+ok: [op1d-cbr-bqa-mw01.oci.betanxt.com] => {
+    "debug_info": {
+        "searched_groups": "compartment_name_bqa",
+        "{{ group_name }}": "bqa"
+    }
+}
+ok: [op1d-cbr-bqa-mp01.oci.betanxt.com] => {
+    "debug_info": {
+        "searched_groups": "compartment_name_bqa",
+        "{{ group_name }}": "bqa"
+    }
+}
+ok: [op2d-cbr-bqa-bat01.oci.betanxt.com] => {
+    "debug_info": {
+        "searched_groups": "compartment_name_bqa",
+        "{{ group_name }}": "bqa"
+    }
+}
+
+TASK [common : Retrieve "cbr_bo_id" group] *************************************
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mw01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mp01.oci.betanxt.com]
+ok: [op2d-cbr-bqa-bat01.oci.betanxt.com]
+
+TASK [common : Retrieve cbr_bo_id value from group] ****************************
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mw01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mp01.oci.betanxt.com]
+ok: [op2d-cbr-bqa-bat01.oci.betanxt.com]
+
+TASK [common : Debug vars from groups] *****************************************
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com] => {
+    "debug_info": {
+        "searched_groups": "1",
+        "{{ group_name }}": "1"
+    }
+}
+ok: [op1d-cbr-bqa-mw01.oci.betanxt.com] => {
+    "debug_info": {
+        "searched_groups": "1",
+        "{{ group_name }}": "1"
+    }
+}
+ok: [op1d-cbr-bqa-mp01.oci.betanxt.com] => {
+    "debug_info": {
+        "searched_groups": "1",
+        "{{ group_name }}": "1"
+    }
+}
+ok: [op2d-cbr-bqa-bat01.oci.betanxt.com] => {
+    "debug_info": {
+        "searched_groups": "1",
+        "{{ group_name }}": "1"
+    }
+}
+
+TASK [common : Retrieve "cbr_firm_no" group] ***********************************
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mw01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mp01.oci.betanxt.com]
+ok: [op2d-cbr-bqa-bat01.oci.betanxt.com]
+
+TASK [common : Retrieve cbr_firm_no value from group] **************************
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mw01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mp01.oci.betanxt.com]
+ok: [op2d-cbr-bqa-bat01.oci.betanxt.com]
+
+TASK [common : Debug vars from groups] *****************************************
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com] => {
+    "debug_info": {
+        "searched_groups": "0",
+        "{{ group_name }}": "0"
+    }
+}
+ok: [op1d-cbr-bqa-mw01.oci.betanxt.com] => {
+    "debug_info": {
+        "searched_groups": "0",
+        "{{ group_name }}": "0"
+    }
+}
+ok: [op1d-cbr-bqa-mp01.oci.betanxt.com] => {
+    "debug_info": {
+        "searched_groups": "0",
+        "{{ group_name }}": "0"
+    }
+}
+ok: [op2d-cbr-bqa-bat01.oci.betanxt.com] => {
+    "debug_info": {
+        "searched_groups": "0",
+        "{{ group_name }}": "0"
+    }
+}
+
+TASK [common : Retrieve "cbr_sub_no" group] ************************************
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mw01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mp01.oci.betanxt.com]
+ok: [op2d-cbr-bqa-bat01.oci.betanxt.com]
+
+TASK [common : Retrieve cbr_sub_no value from group] ***************************
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mw01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mp01.oci.betanxt.com]
+ok: [op2d-cbr-bqa-bat01.oci.betanxt.com]
+
+TASK [common : Debug vars from groups] *****************************************
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com] => {
+    "debug_info": {
+        "searched_groups": "0",
+        "{{ group_name }}": "0"
+    }
+}
+ok: [op1d-cbr-bqa-mw01.oci.betanxt.com] => {
+    "debug_info": {
+        "searched_groups": "0",
+        "{{ group_name }}": "0"
+    }
+}
+ok: [op1d-cbr-bqa-mp01.oci.betanxt.com] => {
+    "debug_info": {
+        "searched_groups": "0",
+        "{{ group_name }}": "0"
+    }
+}
+ok: [op2d-cbr-bqa-bat01.oci.betanxt.com] => {
+    "debug_info": {
+        "searched_groups": "0",
+        "{{ group_name }}": "0"
+    }
+}
+
+TASK [common : Retrieve "product_id" group] ************************************
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mw01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mp01.oci.betanxt.com]
+ok: [op2d-cbr-bqa-bat01.oci.betanxt.com]
+
+TASK [common : Retrieve product_id value from group] ***************************
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mw01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mp01.oci.betanxt.com]
+ok: [op2d-cbr-bqa-bat01.oci.betanxt.com]
+
+TASK [common : Debug vars from groups] *****************************************
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com] => {
+    "debug_info": {
+        "searched_groups": "002",
+        "{{ group_name }}": "002"
+    }
+}
+ok: [op1d-cbr-bqa-mw01.oci.betanxt.com] => {
+    "debug_info": {
+        "searched_groups": "002",
+        "{{ group_name }}": "002"
+    }
+}
+ok: [op1d-cbr-bqa-mp01.oci.betanxt.com] => {
+    "debug_info": {
+        "searched_groups": "002",
+        "{{ group_name }}": "002"
+    }
+}
+ok: [op2d-cbr-bqa-bat01.oci.betanxt.com] => {
+    "debug_info": {
+        "searched_groups": "002",
+        "{{ group_name }}": "002"
+    }
+}
+
+TASK [common : Retrieve "wsc_ssh_user" group] **********************************
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mw01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mp01.oci.betanxt.com]
+ok: [op2d-cbr-bqa-bat01.oci.betanxt.com]
+
+TASK [common : Retrieve wsc_ssh_user value from group] *************************
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mw01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mp01.oci.betanxt.com]
+ok: [op2d-cbr-bqa-bat01.oci.betanxt.com]
+
+TASK [common : Debug vars from groups] *****************************************
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com] => {
+    "debug_info": {
+        "searched_groups": "wsc_ssh_user_cltsvg",
+        "{{ group_name }}": "cltsvg"
+    }
+}
+ok: [op1d-cbr-bqa-mw01.oci.betanxt.com] => {
+    "debug_info": {
+        "searched_groups": "wsc_ssh_user_cltsvg",
+        "{{ group_name }}": "cltsvg"
+    }
+}
+ok: [op1d-cbr-bqa-mp01.oci.betanxt.com] => {
+    "debug_info": {
+        "searched_groups": "wsc_ssh_user_cltsvg",
+        "{{ group_name }}": "cltsvg"
+    }
+}
+ok: [op2d-cbr-bqa-bat01.oci.betanxt.com] => {
+    "debug_info": {
+        "searched_groups": "wsc_ssh_user_cltsvg",
+        "{{ group_name }}": "cltsvg"
+    }
+}
+
+TASK [common : Retrieve "smrt_managed_branch" group] ***************************
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mw01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mp01.oci.betanxt.com]
+ok: [op2d-cbr-bqa-bat01.oci.betanxt.com]
+
+TASK [common : Retrieve smrt_managed_branch value from group] ******************
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mw01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mp01.oci.betanxt.com]
+ok: [op2d-cbr-bqa-bat01.oci.betanxt.com]
+
+TASK [common : Debug vars from groups] *****************************************
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com] => {
+    "debug_info": {
+        "searched_groups": "tag_smrt_managed_branch=main",
+        "{{ group_name }}": "tag_smrt_managed_branch=main"
+    }
+}
+ok: [op1d-cbr-bqa-mw01.oci.betanxt.com] => {
+    "debug_info": {
+        "searched_groups": "tag_smrt_managed_branch=main",
+        "{{ group_name }}": "tag_smrt_managed_branch=main"
+    }
+}
+ok: [op1d-cbr-bqa-mp01.oci.betanxt.com] => {
+    "debug_info": {
+        "searched_groups": "tag_smrt_managed_branch=main",
+        "{{ group_name }}": "tag_smrt_managed_branch=main"
+    }
+}
+ok: [op2d-cbr-bqa-bat01.oci.betanxt.com] => {
+    "debug_info": {
+        "searched_groups": "tag_smrt_managed_branch=main",
+        "{{ group_name }}": "tag_smrt_managed_branch=main"
+    }
+}
+
+TASK [common : Retrieve "smrt_build_tag" group] ********************************
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mw01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mp01.oci.betanxt.com]
+ok: [op2d-cbr-bqa-bat01.oci.betanxt.com]
+
+TASK [common : Retrieve smrt_build_tag value from group] ***********************
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mw01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mp01.oci.betanxt.com]
+ok: [op2d-cbr-bqa-bat01.oci.betanxt.com]
+
+TASK [common : Debug vars from groups] *****************************************
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com] => {
+    "debug_info": {
+        "searched_groups": "smrt_build_tag_none",
+        "{{ group_name }}": "none"
+    }
+}
+ok: [op1d-cbr-bqa-mw01.oci.betanxt.com] => {
+    "debug_info": {
+        "searched_groups": "smrt_build_tag_none",
+        "{{ group_name }}": "none"
+    }
+}
+ok: [op1d-cbr-bqa-mp01.oci.betanxt.com] => {
+    "debug_info": {
+        "searched_groups": "smrt_build_tag_none",
+        "{{ group_name }}": "none"
+    }
+}
+ok: [op2d-cbr-bqa-bat01.oci.betanxt.com] => {
+    "debug_info": {
+        "searched_groups": "smrt_build_tag_none",
+        "{{ group_name }}": "none"
+    }
+}
+
+TASK [common : Retrieve "env_subtype" group] ***********************************
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mw01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mp01.oci.betanxt.com]
+ok: [op2d-cbr-bqa-bat01.oci.betanxt.com]
+
+TASK [common : Retrieve env_subtype value from group] **************************
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mw01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mp01.oci.betanxt.com]
+ok: [op2d-cbr-bqa-bat01.oci.betanxt.com]
+
+TASK [common : Debug vars from groups] *****************************************
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com] => {
+    "debug_info": {
+        "searched_groups": "env_subtype_sandbox",
+        "{{ group_name }}": "sandbox"
+    }
+}
+ok: [op1d-cbr-bqa-mw01.oci.betanxt.com] => {
+    "debug_info": {
+        "searched_groups": "env_subtype_sandbox",
+        "{{ group_name }}": "sandbox"
+    }
+}
+ok: [op1d-cbr-bqa-mp01.oci.betanxt.com] => {
+    "debug_info": {
+        "searched_groups": "env_subtype_sandbox",
+        "{{ group_name }}": "sandbox"
+    }
+}
+ok: [op2d-cbr-bqa-bat01.oci.betanxt.com] => {
+    "debug_info": {
+        "searched_groups": "env_subtype_sandbox",
+        "{{ group_name }}": "sandbox"
+    }
+}
+
+TASK [common : Retrieve "region" group] ****************************************
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mw01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mp01.oci.betanxt.com]
+ok: [op2d-cbr-bqa-bat01.oci.betanxt.com]
+
+TASK [common : Retrieve region value from group] *******************************
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mw01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mp01.oci.betanxt.com]
+ok: [op2d-cbr-bqa-bat01.oci.betanxt.com]
+
+TASK [common : Debug vars from groups] *****************************************
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com] => {
+    "debug_info": {
+        "searched_groups": "region_us-phoenix-1",
+        "{{ group_name }}": "us-phoenix-1"
+    }
+}
+ok: [op1d-cbr-bqa-mw01.oci.betanxt.com] => {
+    "debug_info": {
+        "searched_groups": "region_us-phoenix-1",
+        "{{ group_name }}": "us-phoenix-1"
+    }
+}
+ok: [op1d-cbr-bqa-mp01.oci.betanxt.com] => {
+    "debug_info": {
+        "searched_groups": "region_us-phoenix-1",
+        "{{ group_name }}": "us-phoenix-1"
+    }
+}
+ok: [op2d-cbr-bqa-bat01.oci.betanxt.com] => {
+    "debug_info": {
+        "searched_groups": "region_us-phoenix-1",
+        "{{ group_name }}": "us-phoenix-1"
+    }
+}
+
+TASK [Get Server Information] **************************************************
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mw01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mp01.oci.betanxt.com]
+ok: [op2d-cbr-bqa-bat01.oci.betanxt.com]
+
+PLAY [Get CBR product values] **************************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mw01.oci.betanxt.com]
+ok: [op2d-cbr-bqa-bat01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mp01.oci.betanxt.com]
+
+TASK [cbr_product_values : Set default for "product values" group] *************
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mw01.oci.betanxt.com]
+ok: [op2d-cbr-bqa-bat01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mp01.oci.betanxt.com]
+
+TASK [cbr_product_values : Retrieve the group that starts with "product_values"] ***
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mw01.oci.betanxt.com]
+ok: [op2d-cbr-bqa-bat01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mp01.oci.betanxt.com]
+
+TASK [cbr_product_values : Strip "cbr_product_values_" off of that group] ******
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mw01.oci.betanxt.com]
+ok: [op2d-cbr-bqa-bat01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mp01.oci.betanxt.com]
+
+TASK [cbr_product_values : Break apart the various values] *********************
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mw01.oci.betanxt.com]
+ok: [op2d-cbr-bqa-bat01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mp01.oci.betanxt.com]
+
+TASK [cbr_product_values : Set CBR facts] **************************************
+included: /runner/project/roles/cbr_product_values/tasks/set_facts.yml for op1d-cbr-bqa-fe01.oci.betanxt.com, op1d-cbr-bqa-mw01.oci.betanxt.com, op2d-cbr-bqa-bat01.oci.betanxt.com, op1d-cbr-bqa-mp01.oci.betanxt.com => (item={'abbreviation': 'bo', 'var_name': 'cbr_bo_id'})
+included: /runner/project/roles/cbr_product_values/tasks/set_facts.yml for op1d-cbr-bqa-fe01.oci.betanxt.com, op1d-cbr-bqa-mw01.oci.betanxt.com, op2d-cbr-bqa-bat01.oci.betanxt.com, op1d-cbr-bqa-mp01.oci.betanxt.com => (item={'abbreviation': 'firm', 'var_name': 'cbr_firm_no'})
+included: /runner/project/roles/cbr_product_values/tasks/set_facts.yml for op1d-cbr-bqa-fe01.oci.betanxt.com, op1d-cbr-bqa-mw01.oci.betanxt.com, op2d-cbr-bqa-bat01.oci.betanxt.com, op1d-cbr-bqa-mp01.oci.betanxt.com => (item={'abbreviation': 'sub', 'var_name': 'cbr_sub_no'})
+included: /runner/project/roles/cbr_product_values/tasks/set_facts.yml for op1d-cbr-bqa-fe01.oci.betanxt.com, op1d-cbr-bqa-mw01.oci.betanxt.com, op2d-cbr-bqa-bat01.oci.betanxt.com, op1d-cbr-bqa-mp01.oci.betanxt.com => (item={'abbreviation': 'product', 'var_name': 'product_id'})
+
+TASK [cbr_product_values : Grab the index of the correct abbreviation] *********
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mw01.oci.betanxt.com]
+ok: [op2d-cbr-bqa-bat01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mp01.oci.betanxt.com]
+
+TASK [cbr_product_values : Grab the value (var_name is in the tag)] ************
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mw01.oci.betanxt.com]
+ok: [op2d-cbr-bqa-bat01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mp01.oci.betanxt.com]
+
+TASK [cbr_product_values : Grab the index of the correct abbreviation] *********
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mw01.oci.betanxt.com]
+ok: [op2d-cbr-bqa-bat01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mp01.oci.betanxt.com]
+
+TASK [cbr_product_values : Grab the value (var_name is in the tag)] ************
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mw01.oci.betanxt.com]
+ok: [op2d-cbr-bqa-bat01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mp01.oci.betanxt.com]
+
+TASK [cbr_product_values : Grab the index of the correct abbreviation] *********
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mw01.oci.betanxt.com]
+ok: [op2d-cbr-bqa-bat01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mp01.oci.betanxt.com]
+
+TASK [cbr_product_values : Grab the value (var_name is in the tag)] ************
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mw01.oci.betanxt.com]
+ok: [op2d-cbr-bqa-bat01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mp01.oci.betanxt.com]
+
+TASK [cbr_product_values : Grab the index of the correct abbreviation] *********
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mw01.oci.betanxt.com]
+ok: [op2d-cbr-bqa-bat01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mp01.oci.betanxt.com]
+
+TASK [cbr_product_values : Grab the value (var_name is in the tag)] ************
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mw01.oci.betanxt.com]
+ok: [op2d-cbr-bqa-bat01.oci.betanxt.com]
+ok: [op1d-cbr-bqa-mp01.oci.betanxt.com]
+
+PLAY [application_cbr:&frontend] ***********************************************
+
+TASK [Gathering Facts] *********************************************************
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com]
+
+TASK [=== STARTING PRE-CHECKS FOR op1d-cbr-bqa-fe01.oci.betanxt.com ===] *******
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com] => {
+    "msg": "Beginning comprehensive system pre-checks"
+}
+
+TASK [Get detailed OS information] *********************************************
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com]
+
+TASK [Get kernel version] ******************************************************
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com]
+
+TASK [Get system uptime] *******************************************************
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com]
+
+TASK [Get BIOS/firmware version] ***********************************************
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com]
+
+TASK [Get system hardware information] *****************************************
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com]
+
+TASK [Get filesystem utilization] **********************************************
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com]
+
+TASK [Get inode usage] *********************************************************
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com]
+
+TASK [Check for high filesystem usage (over 80%)] ******************************
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com]
+
+TASK [Get mount points] ********************************************************
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com]
+
+TASK [Get all IP addresses] ****************************************************
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com]
+
+TASK [Get network interfaces] **************************************************
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com]
+
+TASK [Get routing table] *******************************************************
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com]
+
+TASK [Get DNS configuration] ***************************************************
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com]
+
+TASK [Get running services (systemd)] ******************************************
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com]
+
+TASK [Get enabled services] ****************************************************
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com]
+
+TASK [Get HTTPD/Apache version and details] ************************************
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com]
+
+TASK [Check Apache/httpd service status] ***************************************
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com]
+
+TASK [Get Java version information] ********************************************
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com]
+
+TASK [Get Tomcat version and installation details] *****************************
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com]
+
+TASK [Check HTTPD custom ports (8800, 8801)] ***********************************
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com]
+
+TASK [Check Tomcat ports (9800, 9801, 9802, 9803)] *****************************
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com]
+
+TASK [Check all common web ports] **********************************************
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com]
+
+TASK [Get CPU information] *****************************************************
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com]
+
+TASK [Get memory information] **************************************************
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com]
+
+TASK [Get load average] ********************************************************
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com]
+
+TASK [Get disk I/O statistics] *************************************************
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com]
+
+TASK [Get logged in users] *****************************************************
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com]
+
+TASK [Get last reboot time] ****************************************************
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com]
+
+TASK [Create reports directory on control node] ********************************
+changed: [op1d-cbr-bqa-fe01.oci.betanxt.com -> localhost]
+
+TASK [Generate report file on control node] ************************************
+changed: [op1d-cbr-bqa-fe01.oci.betanxt.com -> localhost]
+
+TASK [Send comprehensive email report via mailx] *******************************
+changed: [op1d-cbr-bqa-fe01.oci.betanxt.com]
+
+TASK [=== PRE-CHECK SUMMARY FOR op1d-cbr-bqa-fe01.oci.betanxt.com ===] *********
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com] => {
+    "msg": "================================================\\nSYSTEM SUMMARY FOR op1d-cbr-bqa-fe01.oci.betanxt.com\\n================================================\\nOS: OracleLinux 8.9\\nKernel: 5.15.0-203.146.5.1.el8uek.x86_64\\nUptime:  00:01:03 up 118 days,  8:41,  1 user,  load average: 0.08, 0.03, 0.02\\n\\nVERSION INFORMATION:\\n- HTTPD/Apache: Server version: Apache/2.4.37\\n- Java: java version \\"1.8.0_441\\"\\n- Tomcat: \\n\\nCUSTOM PORTS STATUS:\\nHTTPD (8800, 8801): \\nTomcat (9800-9803): \\n\\nCRITICAL ALERTS:\\n✓ All filesystems under 80% usage\\n\\nEMAIL REPORT SENT:\\nFrom: ansible@maxitcbt.com\\nTo: rajkumar.deva@betanxt.com\\nSubject: Linux Server Pre-check Report - op1d-cbr-bqa-fe01.oci.betanxt.com\\n\\nREPORT FILE SAVED:\\nLocation: ./reports/op1d-cbr-bqa-fe01.oci.betanxt.com_precheck_2025-08-07_000055.txt\\n================================================\\n"
+}
+
+TASK [Pre-checks completed successfully] ***************************************
+ok: [op1d-cbr-bqa-fe01.oci.betanxt.com] => {
+    "msg": "All pre-checks completed for op1d-cbr-bqa-fe01.oci.betanxt.com.\\nEmail report sent to rajkumar.deva@betanxt.com\\nReport file saved: ./reports/op1d-cbr-bqa-fe01.oci.betanxt.com_precheck_2025-08-07_000055.txt"
+}
+
+PLAY RECAP *********************************************************************
+localhost                  : ok=10   changed=0    unreachable=0    failed=0    skipped=3    rescued=0    ignored=0   
+op1d-cbr-bqa-fe01.oci.betanxt.com : ok=94   changed=3    unreachable=0    failed=0    skipped=25   rescued=0    ignored=0   
+op1d-cbr-bqa-mp01.oci.betanxt.com : ok=59   changed=0    unreachable=0    failed=0    skipped=25   rescued=0    ignored=0   
+op1d-cbr-bqa-mw01.oci.betanxt.com : ok=59   changed=0    unreachable=0    failed=0    skipped=25   rescued=0    ignored=0   
+op2d-cbr-bqa-bat01.oci.betanxt.com : ok=59   changed=0    unreachable=0    failed=0    skipped=25   rescued=0    ignored=0   

@@ -1,5 +1,5 @@
 ---
-- name: Check if servers are physical or virtual (ansible user compatible)
+- name: Check if servers are physical or virtual using dmidecode
   hosts: all
   gather_facts: yes
   vars:
@@ -13,153 +13,172 @@
           - hardware
           - virtual
 
-    - name: Debug virtualization facts
+    - name: Get detailed hardware information using dmidecode
+      shell: |
+        # Get system manufacturer
+        MANUFACTURER=$(dmidecode -s system-manufacturer 2>/dev/null | head -1 || echo "Unknown")
+        
+        # Get system product name  
+        PRODUCT=$(dmidecode -s system-product-name 2>/dev/null | head -1 || echo "Unknown")
+        
+        # Get system version
+        VERSION=$(dmidecode -s system-version 2>/dev/null | head -1 || echo "Unknown")
+        
+        # Get chassis type
+        CHASSIS=$(dmidecode -s chassis-type 2>/dev/null | head -1 || echo "Unknown")
+        
+        # Get BIOS vendor
+        BIOS_VENDOR=$(dmidecode -s bios-vendor 2>/dev/null | head -1 || echo "Unknown")
+        
+        echo "MANUFACTURER:$MANUFACTURER|PRODUCT:$PRODUCT|VERSION:$VERSION|CHASSIS:$CHASSIS|BIOS:$BIOS_VENDOR"
+      register: dmidecode_info
+      ignore_errors: yes
+      changed_when: false
+
+    - name: Parse dmidecode output
+      set_fact:
+        dmi_manufacturer: "{{ dmidecode_info.stdout.split('|')[0].split(':')[1] | default('Unknown') }}"
+        dmi_product: "{{ dmidecode_info.stdout.split('|')[1].split(':')[1] | default('Unknown') }}"
+        dmi_version: "{{ dmidecode_info.stdout.split('|')[2].split(':')[1] | default('Unknown') }}"
+        dmi_chassis: "{{ dmidecode_info.stdout.split('|')[3].split(':')[1] | default('Unknown') }}"
+        dmi_bios: "{{ dmidecode_info.stdout.split('|')[4].split(':')[1] | default('Unknown') }}"
+
+    - name: Check systemd-detect-virt (additional check)
+      shell: systemd-detect-virt 2>/dev/null || echo "none"
+      register: systemd_virt
+      ignore_errors: yes
+      changed_when: false
+
+    - name: Debug hardware information
       debug:
         msg: 
           - "Server: {{ inventory_hostname }}"
-          - "Virtualization type: {{ ansible_virtualization_type | default('unknown') }}"
-          - "Virtualization role: {{ ansible_virtualization_role | default('unknown') }}"
-          - "System vendor: {{ ansible_system_vendor | default('unknown') }}"
-          - "Product name: {{ ansible_product_name | default('unknown') }}"
-          - "OS: {{ ansible_distribution }} {{ ansible_distribution_version }}"
+          - "DMI Manufacturer: {{ dmi_manufacturer }}"
+          - "DMI Product: {{ dmi_product }}"
+          - "DMI Version: {{ dmi_version }}"
+          - "DMI Chassis: {{ dmi_chassis }}"
+          - "DMI BIOS: {{ dmi_bios }}"
+          - "Systemd-detect-virt: {{ systemd_virt.stdout | default('unknown') }}"
+          - "Ansible virt type: {{ ansible_virtualization_type | default('unknown') }}"
 
-    - name: Check additional virtualization indicators (non-root methods)
-      shell: |
-        # Check for virtualization indicators without requiring root
-        VIRT_INDICATORS=""
-        
-        # Check for hypervisor presence in cpuinfo
-        if [ -f /proc/cpuinfo ]; then
-          HYPERVISOR=$(grep -i hypervisor /proc/cpuinfo | head -1 || echo "")
-          [ -n "$HYPERVISOR" ] && VIRT_INDICATORS="$VIRT_INDICATORS HYPERVISOR_FLAG:yes"
-        fi
-        
-        # Check for container environment
-        if [ -f /.dockerenv ] || [ -n "${container:-}" ]; then
-          VIRT_INDICATORS="$VIRT_INDICATORS CONTAINER:yes"
-        fi
-        
-        # Check for Xen indicators (readable without root)
-        if [ -f /sys/hypervisor/uuid ] && [ -r /sys/hypervisor/uuid ]; then
-          UUID_CHECK=$(cat /sys/hypervisor/uuid 2>/dev/null || echo "")
-          [ -n "$UUID_CHECK" ] && VIRT_INDICATORS="$VIRT_INDICATORS XEN_UUID:present"
-        fi
-        
-        # Check systemd-detect-virt if available (works without root)
-        if command -v systemd-detect-virt >/dev/null 2>&1; then
-          SYSTEMD_VIRT=$(systemd-detect-virt 2>/dev/null || echo "none")
-          VIRT_INDICATORS="$VIRT_INDICATORS SYSTEMD_DETECT:$SYSTEMD_VIRT"
-        fi
-        
-        # Check for common virtualization files/directories
-        if [ -d /proc/vz ] || [ -f /proc/vz/version ]; then
-          VIRT_INDICATORS="$VIRT_INDICATORS OPENVZ:yes"
-        fi
-        
-        if [ -f /proc/xen/capabilities ]; then
-          VIRT_INDICATORS="$VIRT_INDICATORS XEN_CAPS:yes"
-        fi
-        
-        # Check dmesg for virtualization hints (may work depending on permissions)
-        if dmesg 2>/dev/null | grep -qi "hypervisor\|vmware\|virtualbox\|kvm\|xen" | head -1; then
-          VIRT_INDICATORS="$VIRT_INDICATORS DMESG_VIRT:detected"
-        fi
-        
-        echo "$VIRT_INDICATORS"
-      register: additional_virt_info
-      ignore_errors: yes
-      changed_when: false
-
-    - name: Try dmidecode with sudo (if available and configured)
-      shell: |
-        # Only try if sudo is available and passwordless for dmidecode
-        if command -v sudo >/dev/null 2>&1 && sudo -l dmidecode >/dev/null 2>&1; then
-          SYSTEM_INFO=$(sudo dmidecode -s system-manufacturer 2>/dev/null || echo "")
-          PRODUCT_INFO=$(sudo dmidecode -s system-product-name 2>/dev/null || echo "")
-          echo "SUDO_MANUFACTURER:$SYSTEM_INFO SUDO_PRODUCT:$PRODUCT_INFO"
-        else
-          echo "SUDO_DMIDECODE:unavailable"
-        fi
-      register: sudo_dmidecode_info
-      ignore_errors: yes
-      changed_when: false
-
-    - name: Display additional virtualization info
-      debug:
-        msg: 
-          - "Additional virtualization indicators: {{ additional_virt_info.stdout | default('none') }}"
-          - "Sudo dmidecode info: {{ sudo_dmidecode_info.stdout | default('not attempted') }}"
-
-    - name: Determine if server is virtual (ansible user method)
+    - name: Determine if server is VIRTUAL based on dmidecode and other indicators
       set_fact:
         is_virtual: >-
           {{
+            # Check systemd-detect-virt first (most reliable)
+            (systemd_virt.stdout is defined and 
+             systemd_virt.stdout != "none" and 
+             systemd_virt.stdout != "") or
+            
+            # Check Ansible virtualization facts
             (ansible_virtualization_type is defined and 
              ansible_virtualization_type != "NA" and 
              ansible_virtualization_type != "none" and
              ansible_virtualization_type != "") or
-            (ansible_virtualization_role is defined and ansible_virtualization_role == "guest") or
-            (ansible_system_vendor is defined and (
-              "VMware" in ansible_system_vendor or
-              "innotek GmbH" in ansible_system_vendor or
-              "QEMU" in ansible_system_vendor or
-              "Microsoft Corporation" in ansible_system_vendor or
-              "Xen" in ansible_system_vendor or
-              "Red Hat" in ansible_system_vendor or
-              "Amazon EC2" in ansible_system_vendor or
-              "Google" in ansible_system_vendor or
-              "Oracle Corporation" in ansible_system_vendor or
-              "Nutanix" in ansible_system_vendor or
-              "oVirt" in ansible_system_vendor
+            (ansible_virtualization_role is defined and 
+             ansible_virtualization_role == "guest") or
+             
+            # Check dmidecode manufacturer for virtual indicators
+            (dmi_manufacturer is defined and (
+              "VMware" in dmi_manufacturer or
+              "innotek GmbH" in dmi_manufacturer or
+              "QEMU" in dmi_manufacturer or
+              "Microsoft Corporation" in dmi_manufacturer or
+              "Xen" in dmi_manufacturer or
+              "Red Hat" in dmi_manufacturer or
+              "Amazon EC2" in dmi_manufacturer or
+              "Google" in dmi_manufacturer or
+              "Oracle Corporation" in dmi_manufacturer or
+              "Nutanix" in dmi_manufacturer or
+              "oVirt" in dmi_manufacturer or
+              "Parallels" in dmi_manufacturer
             )) or
-            (ansible_product_name is defined and (
-              "VMware" in ansible_product_name or
-              "VirtualBox" in ansible_product_name or
-              "KVM" in ansible_product_name or
-              "RHEV" in ansible_product_name or
-              "HVM domU" in ansible_product_name or
-              "Bochs" in ansible_product_name or
-              "OpenStack" in ansible_product_name or
-              "Oracle VM" in ansible_product_name or
-              "oVirt" in ansible_product_name
+            
+            # Check dmidecode product for virtual indicators  
+            (dmi_product is defined and (
+              "VMware" in dmi_product or
+              "VirtualBox" in dmi_product or
+              "KVM" in dmi_product or
+              "RHEV" in dmi_product or
+              "HVM domU" in dmi_product or
+              "Bochs" in dmi_product or
+              "OpenStack" in dmi_product or
+              "Oracle VM" in dmi_product or
+              "oVirt" in dmi_product or
+              "Virtual Machine" in dmi_product or
+              "Hyper-V" in dmi_product or
+              "Parallels" in dmi_product
             )) or
-            (additional_virt_info.stdout is defined and (
-              "HYPERVISOR_FLAG:yes" in additional_virt_info.stdout or
-              "CONTAINER:yes" in additional_virt_info.stdout or
-              "OPENVZ:yes" in additional_virt_info.stdout or
-              "XEN_CAPS:yes" in additional_virt_info.stdout or
-              "XEN_UUID:present" in additional_virt_info.stdout or
-              "DMESG_VIRT:detected" in additional_virt_info.stdout or
-              ("SYSTEMD_DETECT:" in additional_virt_info.stdout and 
-               "SYSTEMD_DETECT:none" not in additional_virt_info.stdout)
-            )) or
-            (sudo_dmidecode_info.stdout is defined and (
-              ("SUDO_MANUFACTURER:" in sudo_dmidecode_info.stdout and
-               ("VMware" in sudo_dmidecode_info.stdout or
-                "QEMU" in sudo_dmidecode_info.stdout or
-                "Microsoft Corporation" in sudo_dmidecode_info.stdout or
-                "Oracle Corporation" in sudo_dmidecode_info.stdout)) or
-              ("SUDO_PRODUCT:" in sudo_dmidecode_info.stdout and
-               ("VMware" in sudo_dmidecode_info.stdout or
-                "VirtualBox" in sudo_dmidecode_info.stdout or
-                "KVM" in sudo_dmidecode_info.stdout))
+            
+            # Check BIOS vendor for virtual indicators
+            (dmi_bios is defined and (
+              "VMware" in dmi_bios or
+              "innotek GmbH" in dmi_bios or
+              "QEMU" in dmi_bios or
+              "Xen" in dmi_bios or
+              "Microsoft Corporation" in dmi_bios or
+              "Parallels" in dmi_bios
             ))
           }}
 
-    - name: Display server classification
+    - name: Determine physical server indicators
+      set_fact:
+        physical_indicators: >-
+          {{
+            # Check for physical server manufacturers
+            (dmi_manufacturer is defined and (
+              "Dell Inc." in dmi_manufacturer or
+              "Hewlett-Packard" in dmi_manufacturer or
+              "HP" in dmi_manufacturer or
+              "Hewlett Packard Enterprise" in dmi_manufacturer or
+              "HPE" in dmi_manufacturer or
+              "IBM" in dmi_manufacturer or
+              "Lenovo" in dmi_manufacturer or
+              "Cisco" in dmi_manufacturer or
+              "Supermicro" in dmi_manufacturer or
+              "Intel" in dmi_manufacturer or
+              "FUJITSU" in dmi_manufacturer or
+              "NEC" in dmi_manufacturer
+            )) or
+            
+            # Check for physical server product names
+            (dmi_product is defined and (
+              "PowerEdge" in dmi_product or
+              "ProLiant" in dmi_product or
+              "ThinkServer" in dmi_product or
+              "System x" in dmi_product or
+              "UCS" in dmi_product or
+              "PRIMERGY" in dmi_product or
+              "Express" in dmi_product
+            ))
+          }}
+
+    - name: Final determination - Physical or Virtual
+      set_fact:
+        final_classification: >-
+          {{
+            'VIRTUAL' if is_virtual else (
+              'PHYSICAL' if physical_indicators else 'UNKNOWN'
+            )
+          }}
+
+    - name: Display server classification with details
       debug:
         msg: 
-          - "{{ inventory_hostname }} is {{ 'VIRTUAL' if is_virtual else 'PHYSICAL' }}"
-          - "Detection confidence: {{ 'HIGH' if (ansible_virtualization_type is defined and ansible_virtualization_type not in ['NA', 'none', '']) else 'MEDIUM' }}"
+          - "{{ inventory_hostname }} is {{ final_classification }}"
+          - "Manufacturer: {{ dmi_manufacturer }}"
+          - "Product: {{ dmi_product }}"
+          - "Chassis: {{ dmi_chassis }}"
+          - "Systemd-detect-virt: {{ systemd_virt.stdout | default('none') }}"
 
     - name: Initialize physical servers file with header (run once)
       local_action:
         module: copy
         content: |
-          # Physical Servers List (Oracle Linux & RHEL) - Ansible User
+          # Physical Servers List (Oracle Linux & RHEL) - Enhanced Detection
           # Generated on: {{ ansible_date_time.iso8601 }}
-          # Format: hostname | OS version | vendor product | confidence
-          # ================================================================
+          # Format: IP/hostname | OS | Manufacturer | Product | Chassis | Detection Method
+          # ========================================================================
         dest: "{{ physical_servers_file }}"
         force: no
       run_once: yes
@@ -169,10 +188,10 @@
       local_action:
         module: copy
         content: |
-          # Virtual Servers List (Oracle Linux & RHEL) - Ansible User
+          # Virtual Servers List (Oracle Linux & RHEL) - Enhanced Detection
           # Generated on: {{ ansible_date_time.iso8601 }}
-          # Format: hostname | OS version | virtualization type | vendor | confidence
-          # ================================================================
+          # Format: IP/hostname | OS | Virtualization | Manufacturer | Product | Detection Method
+          # ========================================================================
         dest: "{{ virtual_servers_file }}"
         force: no
       run_once: yes
@@ -182,17 +201,25 @@
       local_action:
         module: lineinfile
         path: "{{ physical_servers_file }}"
-        line: "{{ inventory_hostname }} | {{ ansible_distribution }} {{ ansible_distribution_version }} | {{ ansible_system_vendor | default('Unknown') }} {{ ansible_product_name | default('Unknown') }} | {{ 'HIGH' if (ansible_virtualization_type is defined and ansible_virtualization_type in ['NA', 'none', '']) else 'MEDIUM' }}"
+        line: "{{ inventory_hostname }} | {{ ansible_distribution }} {{ ansible_distribution_version }} | {{ dmi_manufacturer }} | {{ dmi_product }} | {{ dmi_chassis }} | {{ 'dmidecode' if physical_indicators else 'fallback' }}"
         create: yes
-      when: not is_virtual
+      when: final_classification == 'PHYSICAL'
 
     - name: Add server details to virtual servers list  
       local_action:
         module: lineinfile
         path: "{{ virtual_servers_file }}"
-        line: "{{ inventory_hostname }} | {{ ansible_distribution }} {{ ansible_distribution_version }} | {{ ansible_virtualization_type | default('detected') }} | {{ ansible_system_vendor | default('Unknown') }} | {{ 'HIGH' if (ansible_virtualization_type is defined and ansible_virtualization_type not in ['NA', 'none', '']) else 'MEDIUM' }}"
+        line: "{{ inventory_hostname }} | {{ ansible_distribution }} {{ ansible_distribution_version }} | {{ systemd_virt.stdout | default(ansible_virtualization_type | default('detected')) }} | {{ dmi_manufacturer }} | {{ dmi_product }} | {{ 'dmidecode+systemd' if systemd_virt.stdout != 'none' else 'dmidecode' }}"
         create: yes
-      when: is_virtual
+      when: final_classification == 'VIRTUAL'
+
+    - name: Add unknown servers to a separate section in physical file
+      local_action:
+        module: lineinfile
+        path: "{{ physical_servers_file }}"
+        line: "{{ inventory_hostname }} | {{ ansible_distribution }} {{ ansible_distribution_version }} | {{ dmi_manufacturer }} | {{ dmi_product }} | {{ dmi_chassis }} | NEEDS_MANUAL_VERIFICATION"
+        create: yes
+      when: final_classification == 'UNKNOWN'
 
   post_tasks:
     - name: Display summary
@@ -201,14 +228,14 @@
           - "Playbook execution completed!"
           - "Physical servers list: {{ physical_servers_file }}"
           - "Virtual servers list: {{ virtual_servers_file }}"
-          - "Note: Some detection methods may require sudo access for higher accuracy"
+          - "Servers marked as UNKNOWN need manual verification"
       run_once: yes
       delegate_to: localhost
 
     - name: Show physical servers count
       local_action:
         module: shell
-        cmd: "wc -l {{ physical_servers_file }} | awk '{print $1}'"
+        cmd: "grep -v '^#' {{ physical_servers_file }} | wc -l"
       register: physical_count
       run_once: yes
       delegate_to: localhost
@@ -217,18 +244,24 @@
     - name: Show virtual servers count  
       local_action:
         module: shell
-        cmd: "wc -l {{ virtual_servers_file }} | awk '{print $1}'"
+        cmd: "grep -v '^#' {{ virtual_servers_file }} | wc -l"
       register: virtual_count
       run_once: yes
       delegate_to: localhost
       ignore_errors: yes
 
-    - name: Display final summary
+    - name: Display final summary with detection methods
       debug:
         msg:
-          - "Total physical servers found: {{ (physical_count.stdout | int) - 4 if physical_count.stdout is defined else 0 }}"
-          - "Total virtual servers found: {{ (virtual_count.stdout | int) - 4 if virtual_count.stdout is defined else 0 }}"
-          - "Detection methods used: Ansible facts, systemd-detect-virt, /proc checks, container detection"
-          - "For enhanced detection, consider configuring passwordless sudo for 'dmidecode'"
+          - "=== DETECTION SUMMARY ==="
+          - "Physical servers found: {{ physical_count.stdout | default(0) }}"
+          - "Virtual servers found: {{ virtual_count.stdout | default(0) }}"
+          - "Detection methods used:"
+          - "  1. dmidecode -s system-manufacturer"
+          - "  2. dmidecode -s system-product-name" 
+          - "  3. systemd-detect-virt"
+          - "  4. Ansible virtualization facts"
+          - "Physical server indicators: Dell, HP/HPE, IBM, Lenovo, Cisco, Supermicro, etc."
+          - "Check files for detailed hardware information"
       run_once: yes
       delegate_to: localhost

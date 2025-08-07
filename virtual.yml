@@ -7,6 +7,28 @@
     virtual_servers_file: "/tmp/virtual_servers.txt"
   
   tasks:
+    - name: Create physical servers file with header
+      copy:
+        content: |
+          # Physical Servers List (Oracle Linux & RHEL) - Enhanced Detection
+          # Generated on: {{ ansible_date_time.iso8601 }}
+          # Format: IP/hostname | OS | Manufacturer | Product | Chassis | Detection Method
+          # ========================================================================
+        dest: "{{ physical_servers_file }}"
+      delegate_to: localhost
+      run_once: true
+
+    - name: Create virtual servers file with header
+      copy:
+        content: |
+          # Virtual Servers List (Oracle Linux & RHEL) - Enhanced Detection
+          # Generated on: {{ ansible_date_time.iso8601 }}
+          # Format: IP/hostname | OS | Virtualization | Manufacturer | Product | Detection Method
+          # ========================================================================
+        dest: "{{ virtual_servers_file }}"
+      delegate_to: localhost
+      run_once: true
+
     - name: Gather system information
       setup:
         gather_subset:
@@ -171,97 +193,74 @@
           - "Chassis: {{ dmi_chassis }}"
           - "Systemd-detect-virt: {{ systemd_virt.stdout | default('none') }}"
 
-    - name: Initialize physical servers file with header (run once)
-      local_action:
-        module: copy
-        content: |
-          # Physical Servers List (Oracle Linux & RHEL) - Enhanced Detection
-          # Generated on: {{ ansible_date_time.iso8601 }}
-          # Format: IP/hostname | OS | Manufacturer | Product | Chassis | Detection Method
-          # ========================================================================
-        dest: "{{ physical_servers_file }}"
-        force: no
-      run_once: yes
-      delegate_to: localhost
-
-    - name: Initialize virtual servers file with header (run once)
-      local_action:
-        module: copy
-        content: |
-          # Virtual Servers List (Oracle Linux & RHEL) - Enhanced Detection
-          # Generated on: {{ ansible_date_time.iso8601 }}
-          # Format: IP/hostname | OS | Virtualization | Manufacturer | Product | Detection Method
-          # ========================================================================
-        dest: "{{ virtual_servers_file }}"
-        force: no
-      run_once: yes
-      delegate_to: localhost
-
-    - name: Add server details to physical servers list
-      local_action:
-        module: lineinfile
+    - name: Add physical server to list
+      lineinfile:
         path: "{{ physical_servers_file }}"
         line: "{{ inventory_hostname }} | {{ ansible_distribution }} {{ ansible_distribution_version }} | {{ dmi_manufacturer }} | {{ dmi_product }} | {{ dmi_chassis }} | {{ 'dmidecode' if physical_indicators else 'fallback' }}"
         create: yes
+      delegate_to: localhost
       when: final_classification == 'PHYSICAL'
 
-    - name: Add server details to virtual servers list  
-      local_action:
-        module: lineinfile
+    - name: Add virtual server to list
+      lineinfile:
         path: "{{ virtual_servers_file }}"
         line: "{{ inventory_hostname }} | {{ ansible_distribution }} {{ ansible_distribution_version }} | {{ systemd_virt.stdout | default(ansible_virtualization_type | default('detected')) }} | {{ dmi_manufacturer }} | {{ dmi_product }} | {{ 'dmidecode+systemd' if systemd_virt.stdout != 'none' else 'dmidecode' }}"
         create: yes
+      delegate_to: localhost
       when: final_classification == 'VIRTUAL'
 
-    - name: Add unknown servers to a separate section in physical file
-      local_action:
-        module: lineinfile
+    - name: Add unknown server to physical list for manual review
+      lineinfile:
         path: "{{ physical_servers_file }}"
         line: "{{ inventory_hostname }} | {{ ansible_distribution }} {{ ansible_distribution_version }} | {{ dmi_manufacturer }} | {{ dmi_product }} | {{ dmi_chassis }} | NEEDS_MANUAL_VERIFICATION"
         create: yes
+      delegate_to: localhost
       when: final_classification == 'UNKNOWN'
 
   post_tasks:
-    - name: Display summary
+    - name: Display file locations
       debug:
         msg:
-          - "Playbook execution completed!"
-          - "Physical servers list: {{ physical_servers_file }}"
-          - "Virtual servers list: {{ virtual_servers_file }}"
-          - "Servers marked as UNKNOWN need manual verification"
+          - "=== FILES CREATED ==="
+          - "Physical servers: {{ physical_servers_file }}"
+          - "Virtual servers: {{ virtual_servers_file }}"
       run_once: yes
       delegate_to: localhost
 
-    - name: Show physical servers count
-      local_action:
-        module: shell
-        cmd: "grep -v '^#' {{ physical_servers_file }} | wc -l"
-      register: physical_count
-      run_once: yes
+    - name: Show physical servers content
+      shell: cat {{ physical_servers_file }}
+      register: physical_content
       delegate_to: localhost
-      ignore_errors: yes
-
-    - name: Show virtual servers count  
-      local_action:
-        module: shell
-        cmd: "grep -v '^#' {{ virtual_servers_file }} | wc -l"
-      register: virtual_count
       run_once: yes
-      delegate_to: localhost
-      ignore_errors: yes
 
-    - name: Display final summary with detection methods
+    - name: Show virtual servers content  
+      shell: cat {{ virtual_servers_file }}
+      register: virtual_content
+      delegate_to: localhost
+      run_once: yes
+
+    - name: Display physical servers found
       debug:
-        msg:
-          - "=== DETECTION SUMMARY ==="
-          - "Physical servers found: {{ physical_count.stdout | default(0) }}"
-          - "Virtual servers found: {{ virtual_count.stdout | default(0) }}"
-          - "Detection methods used:"
-          - "  1. dmidecode -s system-manufacturer"
-          - "  2. dmidecode -s system-product-name" 
-          - "  3. systemd-detect-virt"
-          - "  4. Ansible virtualization facts"
-          - "Physical server indicators: Dell, HP/HPE, IBM, Lenovo, Cisco, Supermicro, etc."
-          - "Check files for detailed hardware information"
+        msg: "{{ physical_content.stdout_lines }}"
+      run_once: yes
+      delegate_to: localhost
+
+    - name: Display virtual servers found
+      debug:
+        msg: "{{ virtual_content.stdout_lines }}"
+      run_once: yes
+      delegate_to: localhost
+
+    - name: Show counts
+      shell: |
+        echo "Physical servers: $(grep -v '^#' {{ physical_servers_file }} | wc -l)"
+        echo "Virtual servers: $(grep -v '^#' {{ virtual_servers_file }} | wc -l)"
+      register: counts
+      delegate_to: localhost
+      run_once: yes
+
+    - name: Display final counts
+      debug:
+        msg: "{{ counts.stdout_lines }}"
       run_once: yes
       delegate_to: localhost

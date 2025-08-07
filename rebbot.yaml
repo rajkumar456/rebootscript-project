@@ -1,7 +1,6 @@
----
-# Simple Linux Reboot Script (RECOMMENDED)
-# File: reboot_server.yml
-- name: Reboot Linux server
+# Simple Oracle Linux Reboot Script with Essential System Info
+# File: reboot_oracle_linux.yml
+- name: Reboot Oracle Linux server and display system information
   hosts: all
   become: yes
   gather_facts: true
@@ -22,8 +21,57 @@
       shell: uptime
       register: server_uptime
       
-    - name: "Display server uptime"
+    - name: "Get Oracle Linux OS version"
+      shell: cat /etc/os-release
+      register: os_version
+      
+    - name: "Get kernel version"
+      shell: |
+        echo "Kernel: $(uname -r)"
+        echo "Type: $(uname -r | grep -q 'uek' && echo 'Oracle UEK' || echo 'RHCK')"
+      register: kernel_version
+      
+    - name: "Get firmware version"
+      shell: |
+        if command -v dmidecode >/dev/null 2>&1; then
+          dmidecode -s bios-version 2>/dev/null || echo "BIOS info not available"
+        else
+          echo "dmidecode not available"
+        fi
+      register: firmware_version
+      ignore_errors: yes
+      
+    - name: "Display system information"
       debug:
         msg: |
-          Server {{ inventory_hostname }} rebooted successfully!
-          Current uptime: {{ server_uptime.stdout }}
+          ==========================================
+          ORACLE LINUX REBOOT COMPLETED!
+          ==========================================
+          Server: {{ inventory_hostname }}
+          Uptime: {{ server_uptime.stdout }}
+          
+          OS Version: {{ os_version.stdout }}
+          {{ kernel_version.stdout }}
+          Firmware: {{ firmware_version.stdout }}
+          ==========================================
+
+    - name: "Send email notification with system info"
+      shell: |
+        {
+          echo "From: noreply@company.com"
+          echo "To: admin@company.com"
+          echo "Subject: Oracle Linux Reboot Complete - {{ inventory_hostname }}"
+          echo ""
+          echo "Server: {{ inventory_hostname }}"
+          echo "Uptime: {{ server_uptime.stdout }}"
+          echo ""
+          echo "OS Version:"
+          echo "{{ os_version.stdout }}"
+          echo ""
+          echo "{{ kernel_version.stdout }}"
+          echo ""
+          echo "Firmware: {{ firmware_version.stdout }}"
+          echo ""
+          echo "Reboot completed at: $(date)"
+        } | mailx -r "noreply@company.com" -s "Oracle Linux Reboot Complete - {{ inventory_hostname }}" admin@company.com
+      ignore_errors: yes
